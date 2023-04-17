@@ -15,7 +15,7 @@ A simple scoreboard application with timer functionality, built using Python and
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/scoreboard.git
+git clone https://github.com/parkstar82/ScoreBoard.git
 ```
 
 2. Change the directory:

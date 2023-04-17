@@ -20,11 +20,11 @@ class ScoreBoard(tk.Tk):
 
         self.red_score = 0
         self.blue_score = 0
-        self.timer_seconds = 9000
+        self.timer_seconds = 9000  # 현재 남은 시간
 
-        self.init_time = self.timer_seconds
-        self.start_timer_seconds = self.timer_seconds
-        self.is_start = False
+        self.init_time = self.timer_seconds  # 사용자 설정 시작 시간
+        self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
+        self.is_start = False  # 시합 시작
 
         # Bind the 'ESC' key to exit fullscreen mode
         self.bind("<Escape>", self.exit_fullscreen)
@@ -34,7 +34,6 @@ class ScoreBoard(tk.Tk):
         self.bind("/", self.on_slash_key_pressed)
         self.bind("<space>", self.on_spacebar_key_pressed)
         self.bind("<Return>", self.on_return_key_pressed)
-
 
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
@@ -245,12 +244,20 @@ class ScoreBoard(tk.Tk):
 
         # Buttons
         self.red_button = tk.Button(
-            self, text="+1", command=self.red_increase, font=("Helvetica", self.adjust_widget_size(60)), fg="red"
+            self,
+            text="+1",
+            command=self.red_increase,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="red",
         )
         self.red_button.place(relx=0.18, rely=0.9, anchor="center")
 
         self.red_button_minus = tk.Button(
-            self, text="-1", command=self.red_decrease, font=("Helvetica", self.adjust_widget_size(60)), fg="red"
+            self,
+            text="-1",
+            command=self.red_decrease,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="red",
         )
         self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
 
@@ -274,31 +281,41 @@ class ScoreBoard(tk.Tk):
 
         # Start timer button
         self.start_timer_button = tk.Button(
-            self, text="Start Timer", command=self.start_timer, font=("Helvetica", self.adjust_widget_size(45))
+            self,
+            text="Start Timer",
+            command=self.start_timer,
+            font=("Helvetica", self.adjust_widget_size(45)),
         )
         self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
 
         # Reset timer button
         self.reset_timer_button = tk.Button(
-            self, text="Reset", command=self.reset_timer, font=("Helvetica", self.adjust_widget_size(15))
+            self,
+            text="Reset",
+            command=self.reset_timer,
+            font=("Helvetica", self.adjust_widget_size(15)),
         )
         self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
 
     def red_increase(self):
-        self.red_score += 1
-        self.red_label.config(text="{}".format(self.red_score))
+        if self.is_start:
+            self.red_score += 1
+            self.red_label.config(text="{}".format(self.red_score))
 
     def blue_increase(self):
-        self.blue_score += 1
-        self.blue_label.config(text="{}".format(self.blue_score))
+        if self.is_start:
+            self.blue_score += 1
+            self.blue_label.config(text="{}".format(self.blue_score))
 
     def red_decrease(self):
-        self.red_score -= 1
-        self.red_label.config(text="{}".format(self.red_score))
+        if self.is_start:
+            self.red_score -= 1
+            self.red_label.config(text="{}".format(self.red_score))
 
     def blue_decrease(self):
-        self.blue_score -= 1
-        self.blue_label.config(text="{}".format(self.blue_score))
+        if self.is_start:
+            self.blue_score -= 1
+            self.blue_label.config(text="{}".format(self.blue_score))
 
     def update_timer(self):
         minutes = self.timer_seconds // 6000
@@ -314,6 +331,8 @@ class ScoreBoard(tk.Tk):
 
     def start_timer(self):
         if self.start_timer_seconds > 0:
+            self.focus()
+
             if not self.timer_running:
                 self.timer_running = True
                 self.is_start = True
@@ -332,10 +351,18 @@ class ScoreBoard(tk.Tk):
                 self.start_timer_button.config(text="Start Timer")
                 self.start_timer_seconds = self.timer_seconds
                 # Show Button
-                self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
-                self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-                self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
-                self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
+                self.increase_timer_button.place(
+                    relx=0.362, rely=0.842, anchor="center"
+                )
+                self.decrease_timer_button.place(
+                    relx=0.615, rely=0.842, anchor="center"
+                )
+                self.increase_timer10_button.place(
+                    relx=0.385, rely=0.842, anchor="center"
+                )
+                self.decrease_timer10_button.place(
+                    relx=0.642, rely=0.842, anchor="center"
+                )
 
     def countdown(self):
         if self.timer_running:
@@ -352,12 +379,16 @@ class ScoreBoard(tk.Tk):
             elif self.timer_seconds <= 0:
                 # Reset Timer Button
                 self.timer_running = False
+                self.is_start = False
                 self.start_timer_seconds = 0
+                self.timer_seconds = 0
                 self.update_timer()
 
                 # Play an MP3 file when the timer ends
                 pygame.mixer.music.play()
                 
+                # Blink the winner's score
+                self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
 
     def reset_timer(self):
         self.timer_seconds = self.init_time
@@ -401,54 +432,56 @@ class ScoreBoard(tk.Tk):
             self.update_timer()
 
     def red_warning(self):
-        self.red_warning_state += 1
+        if self.is_start:
+            self.red_warning_state += 1
 
-        if self.red_warning_state == 1:
-            self.red_yellow_circle.config(image=self.yellow_circle_photo)
-            self.red_red_circle1.config(image="")
-            self.red_red_circle2.config(image="")
-        elif self.red_warning_state == 2:
-            self.red_yellow_circle.config(image="")
-            self.red_red_circle1.config(image=self.red_circle_photo)
-            self.red_red_circle2.config(image="")
-        elif self.red_warning_state == 3:
-            self.red_yellow_circle.config(image=self.yellow_circle_photo)
-            self.red_red_circle1.config(image=self.red_circle_photo)
-            self.red_red_circle2.config(image="")
-        elif self.red_warning_state == 4:
-            self.red_yellow_circle.config(image="")
-            self.red_red_circle1.config(image=self.red_circle_photo)
-            self.red_red_circle2.config(image=self.red_circle_photo)
-        else:
-            self.red_warning_state = 0
-            self.red_yellow_circle.config(image="")
-            self.red_red_circle1.config(image="")
-            self.red_red_circle2.config(image="")
+            if self.red_warning_state == 1:
+                self.red_yellow_circle.config(image=self.yellow_circle_photo)
+                self.red_red_circle1.config(image="")
+                self.red_red_circle2.config(image="")
+            elif self.red_warning_state == 2:
+                self.red_yellow_circle.config(image="")
+                self.red_red_circle1.config(image=self.red_circle_photo)
+                self.red_red_circle2.config(image="")
+            elif self.red_warning_state == 3:
+                self.red_yellow_circle.config(image=self.yellow_circle_photo)
+                self.red_red_circle1.config(image=self.red_circle_photo)
+                self.red_red_circle2.config(image="")
+            elif self.red_warning_state == 4:
+                self.red_yellow_circle.config(image="")
+                self.red_red_circle1.config(image=self.red_circle_photo)
+                self.red_red_circle2.config(image=self.red_circle_photo)
+            else:
+                self.red_warning_state = 0
+                self.red_yellow_circle.config(image="")
+                self.red_red_circle1.config(image="")
+                self.red_red_circle2.config(image="")
 
     def blue_warning(self):
-        self.blue_warning_state += 1
+        if self.is_start:
+            self.blue_warning_state += 1
 
-        if self.blue_warning_state == 1:
-            self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-            self.blue_red_circle1.config(image="")
-            self.blue_red_circle2.config(image="")
-        elif self.blue_warning_state == 2:
-            self.blue_yellow_circle.config(image="")
-            self.blue_red_circle1.config(image=self.red_circle_photo)
-            self.blue_red_circle2.config(image="")
-        elif self.blue_warning_state == 3:
-            self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-            self.blue_red_circle1.config(image=self.red_circle_photo)
-            self.blue_red_circle2.config(image="")
-        elif self.blue_warning_state == 4:
-            self.blue_yellow_circle.config(image="")
-            self.blue_red_circle1.config(image=self.red_circle_photo)
-            self.blue_red_circle2.config(image=self.red_circle_photo)
-        else:
-            self.blue_warning_state = 0
-            self.blue_yellow_circle.config(image="")
-            self.blue_red_circle1.config(image="")
-            self.blue_red_circle2.config(image="")
+            if self.blue_warning_state == 1:
+                self.blue_yellow_circle.config(image=self.yellow_circle_photo)
+                self.blue_red_circle1.config(image="")
+                self.blue_red_circle2.config(image="")
+            elif self.blue_warning_state == 2:
+                self.blue_yellow_circle.config(image="")
+                self.blue_red_circle1.config(image=self.red_circle_photo)
+                self.blue_red_circle2.config(image="")
+            elif self.blue_warning_state == 3:
+                self.blue_yellow_circle.config(image=self.yellow_circle_photo)
+                self.blue_red_circle1.config(image=self.red_circle_photo)
+                self.blue_red_circle2.config(image="")
+            elif self.blue_warning_state == 4:
+                self.blue_yellow_circle.config(image="")
+                self.blue_red_circle1.config(image=self.red_circle_photo)
+                self.blue_red_circle2.config(image=self.red_circle_photo)
+            else:
+                self.blue_warning_state = 0
+                self.blue_yellow_circle.config(image="")
+                self.blue_red_circle1.config(image="")
+                self.blue_red_circle2.config(image="")
 
     def resource_path(self, relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -471,29 +504,80 @@ class ScoreBoard(tk.Tk):
         adjusted_size = int(base_size * scale_factor)
 
         return adjusted_size
-    
+
     # Key event handlers
     def exit_fullscreen(self, event):
-        self.attributes("-fullscreen", False)
-        
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.attributes("-fullscreen", False)
+
     def on_z_key_pressed(self, event):
-        self.red_increase()
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.red_increase()
 
     def on_x_key_pressed(self, event):
-        self.red_decrease()
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.red_decrease()
 
     def on_period_key_pressed(self, event):
-        self.blue_increase()
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.blue_increase()
 
     def on_slash_key_pressed(self, event):
-        self.blue_decrease()
-    
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.blue_decrease()
+
     def on_spacebar_key_pressed(self, event):
-        self.start_timer()
+        if (
+            self.focus_get() != self.title_entry
+            and self.focus_get() != self.red_name_entry
+            and self.focus_get() != self.blue_name_entry
+        ):
+            self.start_timer()
 
     def on_return_key_pressed(self, event):
-        self.attributes("-fullscreen", not self.attributes('-fullscreen'))
+        if (
+            self.focus_get() == self.title_entry
+            or self.focus_get() == self.red_name_entry
+            or self.focus_get() == self.blue_name_entry
+        ):
+            self.focus()
+        else:
+            self.attributes("-fullscreen", not self.attributes("-fullscreen"))
 
+    def blink_winner(self, count):
+        if count <= 0:
+            self.red_label.config(fg="white")
+            self.blue_label.config(fg="white")
+            self.update_idletasks()
+            return
+
+        if self.red_score > self.blue_score:
+            self.red_label.config(fg="red" if self.red_label.cget("fg") == "yellow" else "yellow")
+        elif self.blue_score > self.red_score:
+            self.blue_label.config(fg="blue" if self.blue_label.cget("fg") == "yellow" else "yellow")
+
+        self.update_idletasks()
+        self.after(500, self.blink_winner, count - 1)
 
 if __name__ == "__main__":
     app = ScoreBoard()
