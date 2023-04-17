@@ -13,15 +13,28 @@ class ScoreBoard(tk.Tk):
 
         self.title("스코어보드")
         self.geometry("1920x1080")
+        self.attributes("-fullscreen", True)  # Add this line to enable fullscreen mode
+
         self.screen_width = self.winfo_screenwidth()
         self.screen_height = self.winfo_screenheight()
 
         self.red_score = 0
         self.blue_score = 0
-        self.timer_seconds = 9000
+        #self.timer_seconds = 9000
+        self.timer_seconds = 500
+
         self.init_time = self.timer_seconds
         self.start_timer_seconds = self.timer_seconds
         self.is_start = False
+
+        # Bind the 'ESC' key to exit fullscreen mode
+        self.bind("<Escape>", self.exit_fullscreen)
+        self.bind("z", self.on_z_key_pressed)
+        self.bind("x", self.on_x_key_pressed)
+        self.bind(".", self.on_period_key_pressed)
+        self.bind("/", self.on_slash_key_pressed)
+        self.bind("<space>", self.on_spacebar_key_pressed)
+
 
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
@@ -300,28 +313,29 @@ class ScoreBoard(tk.Tk):
         self.timer_label.update_idletasks()  # Update only the timer label widget
 
     def start_timer(self):
-        if not self.timer_running:
-            self.timer_running = True
-            self.is_start = True
-            self.start_timer_button.config(text="Stop Timer")
-            self.start_time = time.time()  # Save the current time
+        if self.start_timer_seconds > 0:
+            if not self.timer_running:
+                self.timer_running = True
+                self.is_start = True
+                self.start_timer_button.config(text="Stop Timer")
+                self.start_time = time.time()  # Save the current time
 
-            self.countdown()
+                self.countdown()
 
-            # Hide Button
-            self.increase_timer_button.place_forget()
-            self.decrease_timer_button.place_forget()
-            self.increase_timer10_button.place_forget()
-            self.decrease_timer10_button.place_forget()
-        else:
-            self.timer_running = False
-            self.start_timer_button.config(text="Start Timer")
-            self.start_timer_seconds = self.timer_seconds
-            # Show Button
-            self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
-            self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-            self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
-            self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
+                # Hide Button
+                self.increase_timer_button.place_forget()
+                self.decrease_timer_button.place_forget()
+                self.increase_timer10_button.place_forget()
+                self.decrease_timer10_button.place_forget()
+            else:
+                self.timer_running = False
+                self.start_timer_button.config(text="Start Timer")
+                self.start_timer_seconds = self.timer_seconds
+                # Show Button
+                self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
+                self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
+                self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
+                self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
 
     def countdown(self):
         if self.timer_running:
@@ -341,7 +355,9 @@ class ScoreBoard(tk.Tk):
 
                 # Reset Timer Button
                 self.timer_running = False
-                self.start_timer_button.config(text="Start Timer")
+                self.start_timer_seconds = 0
+                self.update_timer()
+                
 
     def reset_timer(self):
         self.timer_seconds = self.init_time
@@ -454,6 +470,25 @@ class ScoreBoard(tk.Tk):
         adjusted_size = int(base_size * scale_factor)
 
         return adjusted_size
+    
+    # Key event handlers
+    def exit_fullscreen(self, event):
+        self.attributes("-fullscreen", False)
+        
+    def on_z_key_pressed(self, event):
+        self.red_increase()
+
+    def on_x_key_pressed(self, event):
+        self.red_decrease()
+
+    def on_period_key_pressed(self, event):
+        self.blue_increase()
+
+    def on_slash_key_pressed(self, event):
+        self.blue_decrease()
+    
+    def on_spacebar_key_pressed(self, event):
+        self.start_timer()
 
 
 if __name__ == "__main__":
