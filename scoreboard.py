@@ -6,12 +6,15 @@ import pygame
 from PIL import Image, ImageTk
 import time
 
+
 class ScoreBoard(tk.Tk):
     def __init__(self):
         super().__init__()
 
         self.title("스코어보드")
         self.geometry("1920x1080")
+        self.screen_width = self.winfo_screenwidth()
+        self.screen_height = self.winfo_screenheight()
 
         self.red_score = 0
         self.blue_score = 0
@@ -27,8 +30,16 @@ class ScoreBoard(tk.Tk):
         self.timer_running = False
 
         # Title text input
-        self.title_entry = tk.Entry(self, font=("Helvetica", 80), fg="white", bg="black", justify='center')
-        self.title_entry.place(relx=0.5, rely=0.06, anchor="center", relwidth=1.0, relheight=0.13)
+        self.title_entry = tk.Entry(
+            self,
+            font=("Helvetica", self.adjust_widget_size(80)),
+            fg="white",
+            bg="black",
+            justify="center",
+        )
+        self.title_entry.place(
+            relx=0.5, rely=0.06, anchor="center", relwidth=1.0, relheight=0.13
+        )
         # Set initial text
         initial_text = "제20회전라북도지사기합기도대회"
         self.title_entry.insert(0, initial_text)
@@ -37,24 +48,42 @@ class ScoreBoard(tk.Tk):
         self.red_panel = tk.Frame(self, bg="red")
         self.red_panel.place(relx=0, rely=0.12, relwidth=0.5, relheight=0.7)
 
-        self.red_label = tk.Label(self.red_panel, text="{}".format(self.red_score), fg="white", bg="red", font=("Helvetica", 350))
+        self.red_label = tk.Label(
+            self.red_panel,
+            text="{}".format(self.red_score),
+            fg="white",
+            bg="red",
+            font=("Helvetica", self.adjust_widget_size(350)),
+        )
         self.red_label.pack(anchor="center", side="top", pady=20, padx=20)
 
         # Warning buttons
-        self.red_warning_button = tk.Button(self, text="경고", command=self.red_warning, font=("Helvetica", 40))
+        self.red_warning_button = tk.Button(
+            self,
+            text="경고",
+            command=self.red_warning,
+            font=("Helvetica", self.adjust_widget_size(40)),
+        )
         self.red_warning_button.place(relx=0.05, rely=0.9, anchor="center")
 
         # Warning circles
         self.yellow_circle_image = Image.open(self.resource_path("yellow_circle.png"))
-        self.yellow_circle_image = self.yellow_circle_image.resize((80, 80), Image.LANCZOS)
+        adjust_image_size = self.adjust_widget_size(80)
+        self.yellow_circle_image = self.yellow_circle_image.resize(
+            (adjust_image_size, adjust_image_size), Image.LANCZOS
+        )
         self.yellow_circle_photo = ImageTk.PhotoImage(self.yellow_circle_image)
 
         self.red_circle_image = Image.open(self.resource_path("red_circle.png"))
-        self.red_circle_image = self.red_circle_image.resize((80, 80), Image.LANCZOS)
+        self.red_circle_image = self.red_circle_image.resize(
+            (adjust_image_size, adjust_image_size), Image.LANCZOS
+        )
         self.red_circle_photo = ImageTk.PhotoImage(self.red_circle_image)
 
         self.red_warning_box = tk.Frame(self.red_panel, bg="black")
-        self.red_warning_box.place(relx=0.48, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center")
+        self.red_warning_box.place(
+            relx=0.48, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
+        )
 
         self.red_yellow_circle = tk.Label(self.red_panel, bg="black")
         self.red_yellow_circle.place(relx=0.35, rely=0.8, anchor="center")
@@ -69,7 +98,14 @@ class ScoreBoard(tk.Tk):
         self.red_warning_state = 0
 
         # Name text input
-        self.red_name_entry = tk.Entry(self.red_panel, font=("Helvetica", 60), fg="white", bg="black", justify='center', width=25)
+        self.red_name_entry = tk.Entry(
+            self.red_panel,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="white",
+            bg="black",
+            justify="center",
+            width=self.adjust_widget_size(25),
+        )
         self.red_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
         initial_red_name_text = "홍길동"
@@ -79,16 +115,29 @@ class ScoreBoard(tk.Tk):
         self.blue_panel = tk.Frame(self, bg="blue")
         self.blue_panel.place(relx=0.5, rely=0.12, relwidth=0.5, relheight=0.7)
 
-        self.blue_label = tk.Label(self.blue_panel, text="{}".format(self.blue_score), fg="white", bg="blue", font=("Helvetica", 350))
+        self.blue_label = tk.Label(
+            self.blue_panel,
+            text="{}".format(self.blue_score),
+            fg="white",
+            bg="blue",
+            font=("Helvetica", self.adjust_widget_size(350)),
+        )
         self.blue_label.pack(anchor="center", side="top", pady=20, padx=20)
 
         # Warning buttons
-        self.blue_warning_button = tk.Button(self, text="경고", command=self.blue_warning, font=("Helvetica", 40))
+        self.blue_warning_button = tk.Button(
+            self,
+            text="경고",
+            command=self.blue_warning,
+            font=("Helvetica", self.adjust_widget_size(40)),
+        )
         self.blue_warning_button.place(relx=0.95, rely=0.9, anchor="center")
 
         # Warning circles
         self.blue_warning_box = tk.Frame(self.blue_panel, bg="black")
-        self.blue_warning_box.place(relx=0.52, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center")
+        self.blue_warning_box.place(
+            relx=0.52, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
+        )
 
         self.blue_yellow_circle = tk.Label(self.blue_panel, bg="black")
         self.blue_yellow_circle.place(relx=0.39, rely=0.8, anchor="center")
@@ -103,7 +152,14 @@ class ScoreBoard(tk.Tk):
         self.blue_warning_state = 0
 
         # Name text input
-        self.blue_name_entry = tk.Entry(self.blue_panel, font=("Helvetica", 60), fg="white", bg="black", justify='center', width=25)
+        self.blue_name_entry = tk.Entry(
+            self.blue_panel,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="white",
+            bg="black",
+            justify="center",
+            width=25,
+        )
         self.blue_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
         initial_blue_name_text = "청길동"
@@ -116,49 +172,105 @@ class ScoreBoard(tk.Tk):
         ms = self.timer_seconds % 100
         self.time_remaining.set("{:02d}:{:02d}.{:02d}".format(minutes, seconds, ms))
 
-        label_width = 540
-        label_height = 175
-        
-        self.timer_canvas = tk.Canvas(self, width=label_width, height=label_height, bg="white", bd=2, relief="solid", highlightthickness=2, highlightbackground="yellow", highlightcolor="yellow")
+        label_width = self.adjust_widget_size(540)
+        label_height = self.adjust_widget_size(175)
+
+        self.timer_canvas = tk.Canvas(
+            self,
+            width=label_width,
+            height=label_height,
+            bg="white",
+            bd=2,
+            relief="solid",
+            highlightthickness=2,
+            highlightbackground="yellow",
+            highlightcolor="yellow",
+        )
         self.timer_canvas.place(relx=0.5, rely=0.73, anchor="center")
 
-        self.timer_label = tk.Label(self.timer_canvas, textvariable=self.time_remaining, font=("Helvetica", 100), bg="white")
-        self.timer_label.place(x=(label_width // 2), y=(label_height // 2), anchor="center")
+        self.timer_label = tk.Label(
+            self.timer_canvas,
+            textvariable=self.time_remaining,
+            font=("Helvetica", self.adjust_widget_size(100)),
+            bg="white",
+        )
+        self.timer_label.place(
+            x=(label_width // 2), y=(label_height // 2), anchor="center"
+        )
 
-        self.increase_timer_button = tk.Button(self, text="-1", command=lambda: self.decrease_timer(100), font=("Helvetica", 13))
+        self.increase_timer_button = tk.Button(
+            self,
+            text="-1",
+            command=lambda: self.decrease_timer(100),
+            font=("Helvetica", self.adjust_widget_size(13)),
+        )
         self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
 
-        self.decrease_timer_button = tk.Button(self, text="+1", command=lambda: self.increase_timer(100), font=("Helvetica", 13))
+        self.decrease_timer_button = tk.Button(
+            self,
+            text="+1",
+            command=lambda: self.increase_timer(100),
+            font=("Helvetica", self.adjust_widget_size(13)),
+        )
         self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
 
-        self.increase_timer10_button = tk.Button(self, text="-10", command=lambda: self.decrease_timer(1000), font=("Helvetica", 13))
+        self.increase_timer10_button = tk.Button(
+            self,
+            text="-10",
+            command=lambda: self.decrease_timer(1000),
+            font=("Helvetica", self.adjust_widget_size(13)),
+        )
         self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
 
-        self.decrease_timer10_button = tk.Button(self, text="+10", command=lambda: self.increase_timer(1000), font=("Helvetica", 13))
+        self.decrease_timer10_button = tk.Button(
+            self,
+            text="+10",
+            command=lambda: self.increase_timer(1000),
+            font=("Helvetica", self.adjust_widget_size(13)),
+        )
         self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
 
         # Buttons
-        self.red_button = tk.Button(self, text="+1", command=self.red_increase, font=("Helvetica", 60), fg="red")
+        self.red_button = tk.Button(
+            self, text="+1", command=self.red_increase, font=("Helvetica", self.adjust_widget_size(60)), fg="red"
+        )
         self.red_button.place(relx=0.18, rely=0.9, anchor="center")
 
-        self.red_button_minus = tk.Button(self, text="-1", command=self.red_decrease, font=("Helvetica", 60), fg="red")
+        self.red_button_minus = tk.Button(
+            self, text="-1", command=self.red_decrease, font=("Helvetica", self.adjust_widget_size(60)), fg="red"
+        )
         self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
-        
-        self.blue_button = tk.Button(self, text="+1", command=self.blue_increase, font=("Helvetica", 60), fg="blue")
+
+        self.blue_button = tk.Button(
+            self,
+            text="+1",
+            command=self.blue_increase,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="blue",
+        )
         self.blue_button.place(relx=0.72, rely=0.9, anchor="center")
 
-        self.blue_button_minus = tk.Button(self, text="-1", command=self.blue_decrease, font=("Helvetica", 60), fg="blue")
+        self.blue_button_minus = tk.Button(
+            self,
+            text="-1",
+            command=self.blue_decrease,
+            font=("Helvetica", self.adjust_widget_size(60)),
+            fg="blue",
+        )
         self.blue_button_minus.place(relx=0.827, rely=0.9, anchor="center")
 
         # Start timer button
-        self.start_timer_button = tk.Button(self, text="Start Timer", command=self.start_timer, font=("Helvetica", 45))
+        self.start_timer_button = tk.Button(
+            self, text="Start Timer", command=self.start_timer, font=("Helvetica", self.adjust_widget_size(45))
+        )
         self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
 
         # Reset timer button
-        self.reset_timer_button = tk.Button(self, text="Reset", command=self.reset_timer, font=("Helvetica", 15))
+        self.reset_timer_button = tk.Button(
+            self, text="Reset", command=self.reset_timer, font=("Helvetica", self.adjust_widget_size(15))
+        )
         self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
 
-        
     def red_increase(self):
         self.red_score += 1
         self.red_label.config(text="{}".format(self.red_score))
@@ -213,8 +325,12 @@ class ScoreBoard(tk.Tk):
 
     def countdown(self):
         if self.timer_running:
-            elapsed_time = int((time.time() - self.start_time) * 100)  # Calculate the elapsed time in milliseconds
-            self.timer_seconds = self.start_timer_seconds - elapsed_time  # Update the timer seconds
+            elapsed_time = int(
+                (time.time() - self.start_time) * 100
+            )  # Calculate the elapsed time in milliseconds
+            self.timer_seconds = (
+                self.start_timer_seconds - elapsed_time
+            )  # Update the timer seconds
 
             if self.timer_seconds > 0:
                 self.update_timer()
@@ -318,7 +434,7 @@ class ScoreBoard(tk.Tk):
             self.blue_red_circle2.config(image="")
 
     def resource_path(self, relative_path):
-        """ Get absolute path to resource, works for dev and for PyInstaller """
+        """Get absolute path to resource, works for dev and for PyInstaller"""
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
             base_path = sys._MEIPASS
@@ -326,6 +442,19 @@ class ScoreBoard(tk.Tk):
             base_path = os.path.abspath(".")
 
         return os.path.join(base_path, relative_path)
+
+    def adjust_widget_size(self, base_size, base_resolution=(1920, 1080)):
+        width_scale = self.screen_width / base_resolution[0]
+        height_scale = self.screen_height / base_resolution[1]
+
+        # Use the smaller scaling factor to ensure the widget fits on the screen
+        scale_factor = min(width_scale, height_scale)
+
+        # Calculate the adjusted size based on the scaling factor
+        adjusted_size = int(base_size * scale_factor)
+
+        return adjusted_size
+
 
 if __name__ == "__main__":
     app = ScoreBoard()
