@@ -350,13 +350,13 @@ class ScoreBoard(tk.Tk):
                 self.update_timer()
                 self.after(10, self.countdown)
             elif self.timer_seconds <= 0:
-                # Play an MP3 file when the timer ends
-                pygame.mixer.music.play()
-
                 # Reset Timer Button
                 self.timer_running = False
                 self.start_timer_seconds = 0
                 self.update_timer()
+
+                # Play an MP3 file when the timer ends
+                pygame.mixer.music.play()
                 
 
     def reset_timer(self):
@@ -393,11 +393,12 @@ class ScoreBoard(tk.Tk):
         self.update_timer()
 
     def decrease_timer(self, time):
-        self.timer_seconds -= time
-        self.start_timer_seconds = self.timer_seconds
-        if not self.is_start:
-            self.init_time = self.timer_seconds
-        self.update_timer()
+        if (self.timer_seconds - time) > 0:
+            self.timer_seconds -= time
+            self.start_timer_seconds = self.timer_seconds
+            if not self.is_start:
+                self.init_time = self.timer_seconds
+            self.update_timer()
 
     def red_warning(self):
         self.red_warning_state += 1
