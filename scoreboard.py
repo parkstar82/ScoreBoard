@@ -20,8 +20,7 @@ class ScoreBoard(tk.Tk):
 
         self.red_score = 0
         self.blue_score = 0
-        #self.timer_seconds = 9000
-        self.timer_seconds = 500
+        self.timer_seconds = 9000
 
         self.init_time = self.timer_seconds
         self.start_timer_seconds = self.timer_seconds
