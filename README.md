@@ -34,10 +34,10 @@ python scoreboard.py
 ```
 
 2. Use the following keyboard shortcuts:
-- `z`: Increase red team score
-- `x`: Decrease red team score
-- `.`: Increase blue team score
-- `/`: Decrease blue team score
+- `1`: Increase red team score
+- `2`: Decrease red team score
+- `-`: Increase blue team score
+- `=`: Decrease blue team score
 - `Spacebar`: Start or pause the timer
 - `Enter`: Toggle fullscreen mode
 
@@ -46,3 +46,4 @@ To exit the application, close the window or press Ctrl+C in the terminal.
 
 ## License
 This project is licensed under the MIT License.
+

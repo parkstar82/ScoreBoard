@@ -26,14 +26,8 @@ class ScoreBoard(tk.Tk):
         self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
         self.is_start = False  # 시합 시작
 
-        # Bind the 'ESC' key to exit fullscreen mode
-        self.bind("<Escape>", self.exit_fullscreen)
-        self.bind("z", self.on_z_key_pressed)
-        self.bind("x", self.on_x_key_pressed)
-        self.bind(".", self.on_period_key_pressed)
-        self.bind("/", self.on_slash_key_pressed)
-        self.bind("<space>", self.on_spacebar_key_pressed)
-        self.bind("<Return>", self.on_return_key_pressed)
+        # Bind the keys
+        self.bind("<KeyPress>", self.on_key_pressed)
 
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
@@ -116,7 +110,7 @@ class ScoreBoard(tk.Tk):
             fg="white",
             bg="black",
             justify="center",
-            width=self.adjust_widget_size(25),
+            width=self.adjust_widget_size(35),
         )
         self.red_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
@@ -170,7 +164,7 @@ class ScoreBoard(tk.Tk):
             fg="white",
             bg="black",
             justify="center",
-            width=25,
+            width=self.adjust_widget_size(35),
         )
         self.blue_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
@@ -402,6 +396,8 @@ class ScoreBoard(tk.Tk):
         self.blue_label.config(text="{}".format(self.blue_score))
         self.red_warning_state = -1
         self.blue_warning_state = -1
+        
+        self.is_start = True # 경고 상태 초기화
         self.red_warning()
         self.blue_warning()
 
@@ -506,64 +502,30 @@ class ScoreBoard(tk.Tk):
         return adjusted_size
 
     # Key event handlers
-    def exit_fullscreen(self, event):
+    def on_key_pressed(self, event):
         if (
             self.focus_get() != self.title_entry
             and self.focus_get() != self.red_name_entry
             and self.focus_get() != self.blue_name_entry
         ):
-            self.attributes("-fullscreen", False)
-
-    def on_z_key_pressed(self, event):
-        if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
-        ):
-            self.red_increase()
-
-    def on_x_key_pressed(self, event):
-        if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
-        ):
-            self.red_decrease()
-
-    def on_period_key_pressed(self, event):
-        if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
-        ):
-            self.blue_increase()
-
-    def on_slash_key_pressed(self, event):
-        if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
-        ):
-            self.blue_decrease()
-
-    def on_spacebar_key_pressed(self, event):
-        if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
-        ):
-            self.start_timer()
-
-    def on_return_key_pressed(self, event):
-        if (
-            self.focus_get() == self.title_entry
-            or self.focus_get() == self.red_name_entry
-            or self.focus_get() == self.blue_name_entry
-        ):
+            key_code = event.keycode
+            if key_code == 49:  # 1
+                self.red_increase()
+            elif key_code == 50:  # 2
+                self.red_decrease()
+            elif key_code == 189:  # -
+                self.blue_increase()
+            elif key_code == 187:  # =
+                self.blue_decrease()
+            elif key_code == 32:  # Spacebar
+                self.start_timer()
+            elif key_code == 13:  # Enter
+                self.attributes("-fullscreen", not self.attributes('-fullscreen'))
+            elif key_code == 27:  # Escape
+                self.attributes("-fullscreen", False)
+        elif event.keycode == 13:  # Enter
             self.focus()
-        else:
-            self.attributes("-fullscreen", not self.attributes("-fullscreen"))
-
+    
     def blink_winner(self, count):
         if count <= 0:
             self.red_label.config(fg="white")
