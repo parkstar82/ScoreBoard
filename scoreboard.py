@@ -34,6 +34,7 @@ class ScoreBoard(tk.Tk):
         self.bind(".", self.on_period_key_pressed)
         self.bind("/", self.on_slash_key_pressed)
         self.bind("<space>", self.on_spacebar_key_pressed)
+        self.bind("<Return>", self.on_return_key_pressed)
 
 
         pygame.mixer.init()
@@ -490,6 +491,9 @@ class ScoreBoard(tk.Tk):
     
     def on_spacebar_key_pressed(self, event):
         self.start_timer()
+
+    def on_return_key_pressed(self, event):
+        self.attributes("-fullscreen", not self.attributes('-fullscreen'))
 
 
 if __name__ == "__main__":
