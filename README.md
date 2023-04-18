@@ -37,8 +37,10 @@ python scoreboard.py
 2. Use the following keyboard shortcuts:
 - `1`: Increase red team score / 빨간 팀 점수 증가
 - `2`: Decrease red team score / 빨간 팀 점수 감소
+- `4`: Win red team / 빨간 팀 승리
 - `-`: Increase blue team score / 파란 팀 점수 증가
 - `=`: Decrease blue team score / 파란 팀 점수 감소
+- `9`: Win blue team / 파란 팀 승리
 - `Spacebar`: Start or pause the timer / 타이머 시작 또는 일시 정지
 - `Enter`: Toggle fullscreen mode / 전체 화면 모드 전환
 

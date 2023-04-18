@@ -18,6 +18,7 @@ class ScoreBoard(tk.Tk):
         self.screen_width = self.winfo_screenwidth()
         self.screen_height = self.winfo_screenheight()
 
+        self.round = 1
         self.red_score = 0
         self.blue_score = 0
         self.timer_seconds = 9000  # 현재 남은 시간
@@ -25,6 +26,8 @@ class ScoreBoard(tk.Tk):
         self.init_time = self.timer_seconds  # 사용자 설정 시작 시간
         self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
         self.is_start = False  # 시합 시작
+        self.str_font = "굴림" # Windows Basic 한글 Font
+        self.str_number_font = "Arial" # 숫자 폰트
 
         # Bind the keys
         self.bind("<KeyPress>", self.on_key_pressed)
@@ -38,7 +41,7 @@ class ScoreBoard(tk.Tk):
         # Title text input
         self.title_entry = tk.Entry(
             self,
-            font=("Helvetica", self.adjust_widget_size(80)),
+            font=(self.str_font, self.adjust_widget_size(80), "bold"),
             fg="white",
             bg="black",
             justify="center",
@@ -47,7 +50,7 @@ class ScoreBoard(tk.Tk):
             relx=0.5, rely=0.06, anchor="center", relwidth=1.0, relheight=0.13
         )
         # Set initial text
-        initial_text = "제20회전라북도지사기합기도대회"
+        initial_text = "합기도대회"
         self.title_entry.insert(0, initial_text)
 
         # Red score panel
@@ -59,16 +62,16 @@ class ScoreBoard(tk.Tk):
             text="{}".format(self.red_score),
             fg="white",
             bg="red",
-            font=("Helvetica", self.adjust_widget_size(350)),
+            font=(self.str_number_font, self.adjust_widget_size(350)),
         )
-        self.red_label.pack(anchor="center", side="top", pady=20, padx=20)
+        self.red_label.pack(anchor="center",pady=20, padx=20)
 
         # Warning buttons
         self.red_warning_button = tk.Button(
             self,
             text="경고",
             command=self.red_warning,
-            font=("Helvetica", self.adjust_widget_size(40)),
+            font=(self.str_font, self.adjust_widget_size(40)),
         )
         self.red_warning_button.place(relx=0.05, rely=0.9, anchor="center")
 
@@ -106,11 +109,11 @@ class ScoreBoard(tk.Tk):
         # Name text input
         self.red_name_entry = tk.Entry(
             self.red_panel,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_font, self.adjust_widget_size(60)),
             fg="white",
             bg="black",
             justify="center",
-            width=self.adjust_widget_size(35),
+            width=self.adjust_widget_size(50),
         )
         self.red_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
@@ -126,16 +129,16 @@ class ScoreBoard(tk.Tk):
             text="{}".format(self.blue_score),
             fg="white",
             bg="blue",
-            font=("Helvetica", self.adjust_widget_size(350)),
+            font=(self.str_number_font, self.adjust_widget_size(350)),
         )
-        self.blue_label.pack(anchor="center", side="top", pady=20, padx=20)
+        self.blue_label.pack(anchor="center", pady=20, padx=20)
 
         # Warning buttons
         self.blue_warning_button = tk.Button(
             self,
             text="경고",
             command=self.blue_warning,
-            font=("Helvetica", self.adjust_widget_size(40)),
+            font=(self.str_font, self.adjust_widget_size(40)),
         )
         self.blue_warning_button.place(relx=0.95, rely=0.9, anchor="center")
 
@@ -160,11 +163,11 @@ class ScoreBoard(tk.Tk):
         # Name text input
         self.blue_name_entry = tk.Entry(
             self.blue_panel,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_font, self.adjust_widget_size(60)),
             fg="white",
             bg="black",
             justify="center",
-            width=self.adjust_widget_size(35),
+            width=self.adjust_widget_size(50),
         )
         self.blue_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
         # Set initial text
@@ -197,7 +200,7 @@ class ScoreBoard(tk.Tk):
         self.timer_label = tk.Label(
             self.timer_canvas,
             textvariable=self.time_remaining,
-            font=("Helvetica", self.adjust_widget_size(100)),
+            font=(self.str_number_font, self.adjust_widget_size(100)),
             bg="white",
         )
         self.timer_label.place(
@@ -208,7 +211,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="-1",
             command=lambda: self.decrease_timer(100),
-            font=("Helvetica", self.adjust_widget_size(13)),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
         )
         self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
 
@@ -216,7 +219,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="+1",
             command=lambda: self.increase_timer(100),
-            font=("Helvetica", self.adjust_widget_size(13)),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
         )
         self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
 
@@ -224,7 +227,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="-10",
             command=lambda: self.decrease_timer(1000),
-            font=("Helvetica", self.adjust_widget_size(13)),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
         )
         self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
 
@@ -232,7 +235,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="+10",
             command=lambda: self.increase_timer(1000),
-            font=("Helvetica", self.adjust_widget_size(13)),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
         )
         self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
 
@@ -241,7 +244,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="+1",
             command=self.red_increase,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_number_font, self.adjust_widget_size(60)),
             fg="red",
         )
         self.red_button.place(relx=0.18, rely=0.9, anchor="center")
@@ -250,7 +253,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="-1",
             command=self.red_decrease,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_number_font, self.adjust_widget_size(60)),
             fg="red",
         )
         self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
@@ -259,7 +262,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="+1",
             command=self.blue_increase,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_number_font, self.adjust_widget_size(60)),
             fg="blue",
         )
         self.blue_button.place(relx=0.72, rely=0.9, anchor="center")
@@ -268,7 +271,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="-1",
             command=self.blue_decrease,
-            font=("Helvetica", self.adjust_widget_size(60)),
+            font=(self.str_number_font, self.adjust_widget_size(60)),
             fg="blue",
         )
         self.blue_button_minus.place(relx=0.827, rely=0.9, anchor="center")
@@ -278,7 +281,7 @@ class ScoreBoard(tk.Tk):
             self,
             text="Start Timer",
             command=self.start_timer,
-            font=("Helvetica", self.adjust_widget_size(45)),
+            font=(self.str_number_font, self.adjust_widget_size(45)),
         )
         self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
 
@@ -287,29 +290,25 @@ class ScoreBoard(tk.Tk):
             self,
             text="Reset",
             command=self.reset_timer,
-            font=("Helvetica", self.adjust_widget_size(15)),
+            font=(self.str_number_font, self.adjust_widget_size(15)),
         )
         self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
 
     def red_increase(self):
-        if self.is_start:
-            self.red_score += 1
-            self.red_label.config(text="{}".format(self.red_score))
+        self.red_score += 1
+        self.red_label.config(text="{}".format(self.red_score))
 
     def blue_increase(self):
-        if self.is_start:
-            self.blue_score += 1
-            self.blue_label.config(text="{}".format(self.blue_score))
+        self.blue_score += 1
+        self.blue_label.config(text="{}".format(self.blue_score))
 
     def red_decrease(self):
-        if self.is_start:
-            self.red_score -= 1
-            self.red_label.config(text="{}".format(self.red_score))
+        self.red_score -= 1
+        self.red_label.config(text="{}".format(self.red_score))
 
     def blue_decrease(self):
-        if self.is_start:
-            self.blue_score -= 1
-            self.blue_label.config(text="{}".format(self.blue_score))
+        self.blue_score -= 1
+        self.blue_label.config(text="{}".format(self.blue_score))
 
     def update_timer(self):
         minutes = self.timer_seconds // 6000
@@ -357,6 +356,25 @@ class ScoreBoard(tk.Tk):
                 self.decrease_timer10_button.place(
                     relx=0.642, rely=0.842, anchor="center"
                 )
+        else:
+            self.timer_running = False
+            self.start_timer_button.config(text="Start Timer")
+            self.start_timer_seconds = 3000
+            self.timer_seconds = 3000
+            self.update_timer()
+            # Show Button
+            self.increase_timer_button.place(
+                relx=0.362, rely=0.842, anchor="center"
+            )
+            self.decrease_timer_button.place(
+                relx=0.615, rely=0.842, anchor="center"
+            )
+            self.increase_timer10_button.place(
+                relx=0.385, rely=0.842, anchor="center"
+            )
+            self.decrease_timer10_button.place(
+                relx=0.642, rely=0.842, anchor="center"
+            )
 
     def countdown(self):
         if self.timer_running:
@@ -370,7 +388,10 @@ class ScoreBoard(tk.Tk):
             if self.timer_seconds > 0:
                 self.update_timer()
                 self.after(10, self.countdown)
-            elif self.timer_seconds <= 0:
+            elif self.timer_seconds <= 0: # 시간 종료로 경기가 끝났을 때
+                # 다음 라운드 준비
+                self.round += 1
+                self.start_timer_button.config(text="{} Round".format(self.round))
                 # Reset Timer Button
                 self.timer_running = False
                 self.is_start = False
@@ -382,7 +403,7 @@ class ScoreBoard(tk.Tk):
                 pygame.mixer.music.play()
                 
                 # Blink the winner's score
-                self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
+                # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
 
     def reset_timer(self):
         self.timer_seconds = self.init_time
@@ -390,6 +411,7 @@ class ScoreBoard(tk.Tk):
         self.update_timer()
 
         # Reset scores
+        self.round = 1
         self.red_score = 0
         self.blue_score = 0
         self.red_label.config(text="{}".format(self.red_score))
@@ -517,6 +539,10 @@ class ScoreBoard(tk.Tk):
                 self.blue_increase()
             elif key_code == 187:  # =
                 self.blue_decrease()
+            elif key_code == 52:  # 4
+                self.blink_winner(6, False) # Red Win
+            elif key_code == 57:  # 9
+                self.blink_winner(6, True) # Blue Win
             elif key_code == 32:  # Spacebar
                 self.start_timer()
             elif key_code == 13:  # Enter
@@ -526,20 +552,20 @@ class ScoreBoard(tk.Tk):
         elif event.keycode == 13:  # Enter
             self.focus()
     
-    def blink_winner(self, count):
+    def blink_winner(self, count, is_blue_win):
         if count <= 0:
             self.red_label.config(fg="white")
             self.blue_label.config(fg="white")
             self.update_idletasks()
             return
 
-        if self.red_score > self.blue_score:
-            self.red_label.config(fg="red" if self.red_label.cget("fg") == "yellow" else "yellow")
-        elif self.blue_score > self.red_score:
-            self.blue_label.config(fg="blue" if self.blue_label.cget("fg") == "yellow" else "yellow")
+        if is_blue_win:
+            self.blue_label.config(fg="yellow" if self.blue_label.cget("fg") == "white" else "white")
+        else:
+            self.red_label.config(fg="yellow" if self.red_label.cget("fg") == "white" else "white")
 
         self.update_idletasks()
-        self.after(500, self.blink_winner, count - 1)
+        self.after(500, self.blink_winner, count - 1, is_blue_win)
 
 if __name__ == "__main__":
     app = ScoreBoard()
