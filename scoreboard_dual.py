@@ -1,5 +1,5 @@
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 
 import os
@@ -7,17 +7,15 @@ import sys
 import tkinter as tk
 from PIL import Image, ImageTk
 import time
+import screeninfo
 
-class ScoreBoard(tk.Tk):
-    def __init__(self):
-        super().__init__()
 
-        self.title("스코어보드")
-        self.geometry("1920x1080")
-        self.attributes("-fullscreen", True)  # Add this line to enable fullscreen mode
+class ScoreBoard:
+    def __init__(self, parent, screen_width, screen_height):
+        self.parent = parent
 
-        self.screen_width = self.winfo_screenwidth()
-        self.screen_height = self.winfo_screenheight()
+        self.screen_width = screen_width
+        self.screen_height = screen_height
 
         self.round = 1
         self.red_score = 0
@@ -27,11 +25,8 @@ class ScoreBoard(tk.Tk):
         self.init_time = self.timer_seconds  # 사용자 설정 시작 시간
         self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
         self.is_start = False  # 시합 시작
-        self.str_font = "굴림" # Windows Basic 한글 Font
-        self.str_number_font = "Arial" # 숫자 폰트
-
-        # Bind the keys
-        self.bind("<KeyPress>", self.on_key_pressed)
+        self.str_font = "굴림"  # Windows Basic 한글 Font
+        self.str_number_font = "Arial"  # 숫자 폰트
 
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
@@ -41,7 +36,7 @@ class ScoreBoard(tk.Tk):
 
         # Title text input
         self.title_entry = tk.Entry(
-            self,
+            self.parent,
             font=(self.str_font, self.adjust_widget_size(80), "bold"),
             fg="white",
             bg="black",
@@ -55,7 +50,7 @@ class ScoreBoard(tk.Tk):
         self.title_entry.insert(0, initial_text)
 
         # Red score panel
-        self.red_panel = tk.Frame(self, bg="red")
+        self.red_panel = tk.Frame(self.parent, bg="red")
         self.red_panel.place(relx=0, rely=0.12, relwidth=0.5, relheight=0.7)
 
         self.red_label = tk.Label(
@@ -65,11 +60,11 @@ class ScoreBoard(tk.Tk):
             bg="red",
             font=(self.str_number_font, self.adjust_widget_size(350)),
         )
-        self.red_label.pack(anchor="center",pady=20, padx=20)
+        self.red_label.pack(anchor="center", pady=20, padx=20)
 
         # Warning buttons
         self.red_warning_button = tk.Button(
-            self,
+            self.parent,
             text="경고",
             command=self.red_warning,
             font=(self.str_font, self.adjust_widget_size(40)),
@@ -77,18 +72,7 @@ class ScoreBoard(tk.Tk):
         self.red_warning_button.place(relx=0.05, rely=0.9, anchor="center")
 
         # Warning circles
-        self.yellow_circle_image = Image.open(self.resource_path("yellow_circle.png"))
-        adjust_image_size = self.adjust_widget_size(80)
-        self.yellow_circle_image = self.yellow_circle_image.resize(
-            (adjust_image_size, adjust_image_size), Image.LANCZOS
-        )
-        self.yellow_circle_photo = ImageTk.PhotoImage(self.yellow_circle_image)
-
-        self.red_circle_image = Image.open(self.resource_path("red_circle.png"))
-        self.red_circle_image = self.red_circle_image.resize(
-            (adjust_image_size, adjust_image_size), Image.LANCZOS
-        )
-        self.red_circle_photo = ImageTk.PhotoImage(self.red_circle_image)
+        self.load_images()
 
         self.red_warning_box = tk.Frame(self.red_panel, bg="black")
         self.red_warning_box.place(
@@ -122,7 +106,7 @@ class ScoreBoard(tk.Tk):
         self.red_name_entry.insert(0, initial_red_name_text)
 
         # Blue score panel
-        self.blue_panel = tk.Frame(self, bg="blue")
+        self.blue_panel = tk.Frame(self.parent, bg="blue")
         self.blue_panel.place(relx=0.5, rely=0.12, relwidth=0.5, relheight=0.7)
 
         self.blue_label = tk.Label(
@@ -136,7 +120,7 @@ class ScoreBoard(tk.Tk):
 
         # Warning buttons
         self.blue_warning_button = tk.Button(
-            self,
+            self.parent,
             text="경고",
             command=self.blue_warning,
             font=(self.str_font, self.adjust_widget_size(40)),
@@ -175,8 +159,98 @@ class ScoreBoard(tk.Tk):
         initial_blue_name_text = "청길동"
         self.blue_name_entry.insert(0, initial_blue_name_text)
 
+        self.init_timer_label()
+
+        self.increase_timer_button = tk.Button(
+            self.parent,
+            text="-1",
+            command=lambda: self.decrease_timer(100),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
+        )
+        self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
+
+        self.decrease_timer_button = tk.Button(
+            self.parent,
+            text="+1",
+            command=lambda: self.increase_timer(100),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
+        )
+        self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
+
+        self.increase_timer10_button = tk.Button(
+            self.parent,
+            text="-10",
+            command=lambda: self.decrease_timer(1000),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
+        )
+        self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
+
+        self.decrease_timer10_button = tk.Button(
+            self.parent,
+            text="+10",
+            command=lambda: self.increase_timer(1000),
+            font=(self.str_number_font, self.adjust_widget_size(13)),
+        )
+        self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
+
+        # Buttons
+        self.red_button = tk.Button(
+            self.parent,
+            text="+1",
+            command=self.red_increase,
+            font=(self.str_number_font, self.adjust_widget_size(60)),
+            fg="red",
+        )
+        self.red_button.place(relx=0.18, rely=0.9, anchor="center")
+
+        self.red_button_minus = tk.Button(
+            self.parent,
+            text="-1",
+            command=self.red_decrease,
+            font=(self.str_number_font, self.adjust_widget_size(60)),
+            fg="red",
+        )
+        self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
+
+        self.blue_button = tk.Button(
+            self.parent,
+            text="+1",
+            command=self.blue_increase,
+            font=(self.str_number_font, self.adjust_widget_size(60)),
+            fg="blue",
+        )
+        self.blue_button.place(relx=0.72, rely=0.9, anchor="center")
+
+        self.blue_button_minus = tk.Button(
+            self.parent,
+            text="-1",
+            command=self.blue_decrease,
+            font=(self.str_number_font, self.adjust_widget_size(60)),
+            fg="blue",
+        )
+        self.blue_button_minus.place(relx=0.827, rely=0.9, anchor="center")
+
+        # Start timer button
+        self.start_timer_button = tk.Button(
+            self.parent,
+            text="Start Timer",
+            command=self.start_timer,
+            font=(self.str_number_font, self.adjust_widget_size(45)),
+        )
+        self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
+
+        # Reset timer button
+        self.reset_timer_button = tk.Button(
+            self.parent,
+            text="Reset",
+            command=self.reset_timer,
+            font=(self.str_number_font, self.adjust_widget_size(15)),
+        )
+        self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
+
+    def init_timer_label(self):
         # Timer
-        self.time_remaining = tk.StringVar()
+        self.time_remaining = tk.StringVar(self.parent)
         minutes = self.timer_seconds // 6000
         seconds = (self.timer_seconds % 6000) // 100
         ms = self.timer_seconds % 100
@@ -186,7 +260,7 @@ class ScoreBoard(tk.Tk):
         label_height = self.adjust_widget_size(175)
 
         self.timer_canvas = tk.Canvas(
-            self,
+            self.parent,
             width=label_width,
             height=label_height,
             bg="white",
@@ -208,92 +282,24 @@ class ScoreBoard(tk.Tk):
             x=(label_width // 2), y=(label_height // 2), anchor="center"
         )
 
-        self.increase_timer_button = tk.Button(
-            self,
-            text="-1",
-            command=lambda: self.decrease_timer(100),
-            font=(self.str_number_font, self.adjust_widget_size(13)),
+    def load_images(self):
+        # Warning circles
+        self.yellow_circle_image = Image.open(self.resource_path("yellow_circle.png"))
+        adjust_image_size = self.adjust_widget_size(80)
+        self.yellow_circle_image = self.yellow_circle_image.resize(
+            (adjust_image_size, adjust_image_size), Image.LANCZOS
         )
-        self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
+        self.yellow_circle_photo = ImageTk.PhotoImage(
+            self.yellow_circle_image, master=self.parent
+        )
 
-        self.decrease_timer_button = tk.Button(
-            self,
-            text="+1",
-            command=lambda: self.increase_timer(100),
-            font=(self.str_number_font, self.adjust_widget_size(13)),
+        self.red_circle_image = Image.open(self.resource_path("red_circle.png"))
+        self.red_circle_image = self.red_circle_image.resize(
+            (adjust_image_size, adjust_image_size), Image.LANCZOS
         )
-        self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-
-        self.increase_timer10_button = tk.Button(
-            self,
-            text="-10",
-            command=lambda: self.decrease_timer(1000),
-            font=(self.str_number_font, self.adjust_widget_size(13)),
+        self.red_circle_photo = ImageTk.PhotoImage(
+            self.red_circle_image, master=self.parent
         )
-        self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
-
-        self.decrease_timer10_button = tk.Button(
-            self,
-            text="+10",
-            command=lambda: self.increase_timer(1000),
-            font=(self.str_number_font, self.adjust_widget_size(13)),
-        )
-        self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
-
-        # Buttons
-        self.red_button = tk.Button(
-            self,
-            text="+1",
-            command=self.red_increase,
-            font=(self.str_number_font, self.adjust_widget_size(60)),
-            fg="red",
-        )
-        self.red_button.place(relx=0.18, rely=0.9, anchor="center")
-
-        self.red_button_minus = tk.Button(
-            self,
-            text="-1",
-            command=self.red_decrease,
-            font=(self.str_number_font, self.adjust_widget_size(60)),
-            fg="red",
-        )
-        self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
-
-        self.blue_button = tk.Button(
-            self,
-            text="+1",
-            command=self.blue_increase,
-            font=(self.str_number_font, self.adjust_widget_size(60)),
-            fg="blue",
-        )
-        self.blue_button.place(relx=0.72, rely=0.9, anchor="center")
-
-        self.blue_button_minus = tk.Button(
-            self,
-            text="-1",
-            command=self.blue_decrease,
-            font=(self.str_number_font, self.adjust_widget_size(60)),
-            fg="blue",
-        )
-        self.blue_button_minus.place(relx=0.827, rely=0.9, anchor="center")
-
-        # Start timer button
-        self.start_timer_button = tk.Button(
-            self,
-            text="Start Timer",
-            command=self.start_timer,
-            font=(self.str_number_font, self.adjust_widget_size(45)),
-        )
-        self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
-
-        # Reset timer button
-        self.reset_timer_button = tk.Button(
-            self,
-            text="Reset",
-            command=self.reset_timer,
-            font=(self.str_number_font, self.adjust_widget_size(15)),
-        )
-        self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
 
     def red_increase(self):
         self.red_score += 1
@@ -325,7 +331,7 @@ class ScoreBoard(tk.Tk):
 
     def start_timer(self):
         if self.start_timer_seconds > 0:
-            self.focus()
+            self.parent.focus()
 
             if not self.timer_running:
                 self.timer_running = True
@@ -364,18 +370,10 @@ class ScoreBoard(tk.Tk):
             self.timer_seconds = 3000
             self.update_timer()
             # Show Button
-            self.increase_timer_button.place(
-                relx=0.362, rely=0.842, anchor="center"
-            )
-            self.decrease_timer_button.place(
-                relx=0.615, rely=0.842, anchor="center"
-            )
-            self.increase_timer10_button.place(
-                relx=0.385, rely=0.842, anchor="center"
-            )
-            self.decrease_timer10_button.place(
-                relx=0.642, rely=0.842, anchor="center"
-            )
+            self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
+            self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
+            self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
+            self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
 
     def countdown(self):
         if self.timer_running:
@@ -388,8 +386,8 @@ class ScoreBoard(tk.Tk):
 
             if self.timer_seconds > 0:
                 self.update_timer()
-                self.after(10, self.countdown)
-            elif self.timer_seconds <= 0: # 시간 종료로 경기가 끝났을 때
+                self.parent.after(10, self.countdown)
+            elif self.timer_seconds <= 0:  # 시간 종료로 경기가 끝났을 때
                 # 다음 라운드 준비
                 self.round += 1
                 self.start_timer_button.config(text="{} Round".format(self.round))
@@ -402,7 +400,7 @@ class ScoreBoard(tk.Tk):
 
                 # Play an MP3 file when the timer ends
                 pygame.mixer.music.play()
-                
+
                 # Blink the winner's score
                 # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
 
@@ -419,8 +417,8 @@ class ScoreBoard(tk.Tk):
         self.blue_label.config(text="{}".format(self.blue_score))
         self.red_warning_state = -1
         self.blue_warning_state = -1
-        
-        self.is_start = True # 경고 상태 초기화
+
+        self.is_start = True  # 경고 상태 초기화
         self.red_warning()
         self.blue_warning()
 
@@ -527,9 +525,9 @@ class ScoreBoard(tk.Tk):
     # Key event handlers
     def on_key_pressed(self, event):
         if (
-            self.focus_get() != self.title_entry
-            and self.focus_get() != self.red_name_entry
-            and self.focus_get() != self.blue_name_entry
+            self.parent.focus_get() != self.title_entry
+            and self.parent.focus_get() != self.red_name_entry
+            and self.parent.focus_get() != self.blue_name_entry
         ):
             key_code = event.keycode
             if key_code == 49:  # 1
@@ -541,33 +539,244 @@ class ScoreBoard(tk.Tk):
             elif key_code == 187:  # =
                 self.blue_decrease()
             elif key_code == 52:  # 4
-                self.blink_winner(6, False) # Red Win
+                self.blink_winner(6, False)  # Red Win
             elif key_code == 57:  # 9
-                self.blink_winner(6, True) # Blue Win
+                self.blink_winner(6, True)  # Blue Win
             elif key_code == 32:  # Spacebar
                 self.start_timer()
             elif key_code == 13:  # Enter
-                self.attributes("-fullscreen", not self.attributes('-fullscreen'))
+                self.toggle_fullscreen(self.parent.overrideredirect())
             elif key_code == 27:  # Escape
-                self.attributes("-fullscreen", False)
+                self.toggle_fullscreen(True)
         elif event.keycode == 13:  # Enter
-            self.focus()
-    
+            self.parent.focus()
+            
+    def toggle_fullscreen(self, isActivate=True):
+        if isActivate:
+            # deactivate full screen
+            self.parent.state("normal")
+            self.parent.geometry(self.geometry)
+            self.parent.overrideredirect(False)
+        else:
+            # activate full screen
+            # Store geometry for reset
+            self.geometry = self.parent.geometry()
+            # Hides borders and make truly fullscreen
+            self.parent.overrideredirect(True)
+            # Maximize window (Windows only). Optionally set screen geometry if you have it
+            self.parent.state("zoomed")
+
     def blink_winner(self, count, is_blue_win):
         if count <= 0:
             self.red_label.config(fg="white")
             self.blue_label.config(fg="white")
-            self.update_idletasks()
+            self.parent.update_idletasks()
             return
 
         if is_blue_win:
-            self.blue_label.config(fg="yellow" if self.blue_label.cget("fg") == "white" else "white")
+            self.blue_label.config(
+                fg="yellow" if self.blue_label.cget("fg") == "white" else "white"
+            )
         else:
-            self.red_label.config(fg="yellow" if self.red_label.cget("fg") == "white" else "white")
+            self.red_label.config(
+                fg="yellow" if self.red_label.cget("fg") == "white" else "white"
+            )
 
-        self.update_idletasks()
-        self.after(500, self.blink_winner, count - 1, is_blue_win)
+        self.parent.update_idletasks()
+        self.parent.after(500, self.blink_winner, count - 1, is_blue_win)
+
+
+class ControlPanel(tk.Toplevel):
+    def __init__(self, master, scoreboard, monitor):
+        super().__init__(master)
+        self.scoreboard = scoreboard
+
+        self.monitor = monitor
+        self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
+        self.overrideredirect(False)
+
+        self.screen_width = self.monitor.width
+        self.screen_height = self.monitor.height
+
+        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height)
+
+        self.title("컨트롤 패널")
+
+        self.widgets.red_button.config(command=self.update_red_score)
+        self.widgets.red_button_minus.config(command=self.update_red_decrease)
+        self.widgets.red_warning_button.config(command=self.update_red_warning)
+        self.widgets.blue_button.config(command=self.update_blue_score)
+        self.widgets.blue_button_minus.config(command=self.update_blue_decrease)
+        self.widgets.blue_warning_button.config(command=self.update_blue_warning)
+        self.widgets.increase_timer_button.config(
+            command=lambda: self.update_decrease_timer(100)
+        )
+        self.widgets.decrease_timer_button.config(
+            command=lambda: self.update_increase_timer(100)
+        )
+        self.widgets.increase_timer10_button.config(
+            command=lambda: self.update_decrease_timer(1000)
+        )
+        self.widgets.decrease_timer10_button.config(
+            command=lambda: self.update_increase_timer(1000)
+        )
+        self.widgets.start_timer_button.config(command=self.update_start_timer)
+        self.widgets.reset_timer_button.config(command=self.update_reset_timer)
+        # Bind the keys
+        self.bind("<KeyPress>", self.update_on_key_pressed)
+
+        # Bind the close event to the on_close method
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def init_geometry(self):
+        self.geometry(
+            f"{self.screen_width}x{self.screen_height}+{self.monitor.x}+{self.monitor.y}"
+        )
+
+    def on_close(self):
+        # Close both the control panel and the view panel
+        self.destroy()
+        self.scoreboard.destroy()
+
+        # Terminate the mainloop
+        self.master.quit()
+
+    def update_red_score(self):
+        self.scoreboard.widgets.red_increase()
+        self.widgets.red_increase()
+
+    def update_red_decrease(self):
+        self.scoreboard.widgets.red_decrease()
+        self.widgets.red_decrease()
+
+    def update_red_warning(self):
+        self.scoreboard.widgets.red_warning()
+        self.widgets.red_warning()
+
+    def update_blue_score(self):
+        self.scoreboard.widgets.blue_increase()
+        self.widgets.blue_increase()
+
+    def update_blue_decrease(self):
+        self.scoreboard.widgets.blue_decrease()
+        self.widgets.blue_decrease()
+
+    def update_blue_warning(self):
+        self.scoreboard.widgets.blue_warning()
+        self.widgets.blue_warning()
+
+    def update_decrease_timer(self, value):
+        self.scoreboard.widgets.decrease_timer(value)
+        self.widgets.decrease_timer(value)
+
+    def update_increase_timer(self, value):
+        self.scoreboard.widgets.increase_timer(value)
+        self.widgets.increase_timer(value)
+
+    def update_on_key_pressed(self, event):
+        key_code = event.keycode
+        if key_code != 13 and key_code != 27:  # Enter
+            self.scoreboard.widgets.on_key_pressed(event)
+
+        self.widgets.on_key_pressed(event)
+
+    def update_start_timer(self):
+        self.scoreboard.widgets.start_timer()
+        self.start_timer()
+
+    def update_reset_timer(self):
+        self.scoreboard.widgets.reset_timer()
+        self.widgets.reset_timer()
+
+    def swap_positions(self):
+        red_widgets = [
+            self.widgets.red_panel,
+            self.widgets.red_warning_button,
+            self.widgets.red_warning_box,
+            self.widgets.red_yellow_circle,
+            self.widgets.red_red_circle1,
+            self.widgets.red_red_circle2,
+            self.widgets.red_button,
+            self.widgets.red_button_minus,
+        ]
+
+        blue_widgets = [
+            self.widgets.blue_panel,
+            self.widgets.blue_warning_button,
+            self.widgets.blue_warning_box,
+            self.widgets.blue_yellow_circle,
+            self.widgets.blue_red_circle1,
+            self.widgets.blue_red_circle2,
+            self.widgets.blue_button,
+            self.widgets.blue_button_minus,
+        ]
+
+        # Save the original relx values
+        red_original_relx_values = [
+            widget.place_info()["relx"] for widget in red_widgets
+        ]
+        blue_original_relx_values = [
+            widget.place_info()["relx"] for widget in blue_widgets
+        ]
+
+        # Swap relx values for red and blue widgets
+        for i in range(len(red_widgets)):
+            red_widget = red_widgets[i]
+            blue_widget = blue_widgets[i]
+
+            red_widget.place_configure(relx=blue_original_relx_values[i])
+            blue_widget.place_configure(relx=red_original_relx_values[i])
+
+    def countdown(self):
+        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
+        self.widgets.countdown()
+
+    def start_timer(self):
+        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
+        self.widgets.time_remaining.set(self.scoreboard.widgets.time_remaining.get())
+        self.update_timer()
+        self.widgets.start_timer()
+
+    def update_timer(self):
+        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
+        self.widgets.update_timer()
+
+
+class ViewPanel(tk.Toplevel):
+    def __init__(self, master, monitor):
+        super().__init__(master)
+
+        self.title("스코어보드")
+        # self.attributes("-fullscreen", False)  # Add this line to enable fullscreen mode
+        self.monitor = monitor
+        self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
+        self.overrideredirect(False)
+
+        self.screen_width = self.monitor.width
+        self.screen_height = self.monitor.height
+        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height)
+
+        # Bind the keys
+        self.bind("<KeyPress>", self.update_on_key_pressed)
+
+    def update_on_key_pressed(self, event):
+        self.widgets.on_key_pressed(event)
+
+    def init_geometry(self):
+        self.geometry(
+            f"{self.screen_width}x{self.screen_height}+{self.monitor.x}+{self.monitor.y}"
+        )
 
 if __name__ == "__main__":
-    app = ScoreBoard()
-    app.mainloop()
+    root = tk.Tk()
+    root.withdraw()
+
+    monitor = []
+    for m in screeninfo.get_monitors():
+        monitor.append(m)
+
+    score_board = ViewPanel(root, monitor[1])
+    control_panel = ControlPanel(root, score_board, monitor[0])
+    control_panel.swap_positions()
+
+    root.mainloop()
