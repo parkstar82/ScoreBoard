@@ -8,23 +8,19 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import time
 import screeninfo
+from timer import Timer
 
 
 class ScoreBoard:
-    def __init__(self, parent, screen_width, screen_height):
+    def __init__(self, parent, screen_width, screen_height, timer):
         self.parent = parent
-
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.timer = timer
 
         self.round = 1
         self.red_score = 0
         self.blue_score = 0
-        self.timer_seconds = 9000  # 현재 남은 시간
-
-        self.init_time = self.timer_seconds  # 사용자 설정 시작 시간
-        self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
-        self.is_start = False  # 시합 시작
         self.str_font = "굴림"  # Windows Basic 한글 Font
         self.str_number_font = "Arial"  # 숫자 폰트
         
@@ -40,12 +36,8 @@ class ScoreBoard:
         self.timer_label_height = self.adjust_widget_size(175)
         self.timer_label_font = (self.str_number_font, self.adjust_widget_size(100))
         
-
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
-
-        # Timer
-        self.timer_running = False
 
         # Title text input
         self.title_entry = tk.Entry(
@@ -250,7 +242,7 @@ class ScoreBoard:
         self.start_timer_button = tk.Button(
             self.parent,
             text="Start Timer",
-            command=self.start_timer,
+            # command=self.start_timer,
             font=self.timer_button_font,
         )
         self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
@@ -312,14 +304,10 @@ class ScoreBoard:
             x=(self.timer_label_width // 2), y=(self.timer_label_height // 2), anchor="center"
         )
         
-
     def init_timer_label(self):
         # Timer
         self.time_remaining = tk.StringVar(self.parent)
-        minutes = self.timer_seconds // 6000
-        seconds = (self.timer_seconds % 6000) // 100
-        ms = self.timer_seconds % 100
-        self.time_remaining.set("{:02d}:{:02d}.{:02d}".format(minutes, seconds, ms))
+        self.time_remaining.set(timer.get_time_remaining())
 
         self.timer_canvas = tk.Canvas(
             self.parent,
@@ -380,95 +368,41 @@ class ScoreBoard:
         self.blue_label.config(text="{}".format(self.blue_score))
 
     def update_timer(self):
-        minutes = self.timer_seconds // 6000
-        seconds = (self.timer_seconds % 6000) // 100
-        ms = self.timer_seconds % 100
-
-        if minutes > 0:
-            self.time_remaining.set("{:02d}:{:02d}.{:02d}".format(minutes, seconds, ms))
-        else:
-            self.time_remaining.set("{:02d}.{:02d}".format(seconds, ms))
-
+        self.time_remaining.set(self.timer.get_time_remaining())
         self.timer_label.update_idletasks()  # Update only the timer label widget
 
-    def start_timer(self):
-        if self.start_timer_seconds > 0:
-            self.parent.focus()
-
-            if not self.timer_running:
-                self.timer_running = True
-                self.is_start = True
-                self.start_timer_button.config(text="Stop Timer")
-                self.start_time = time.time()  # Save the current time
-
-                self.countdown()
-
-                # Hide Button
-                self.increase_timer_button.place_forget()
-                self.decrease_timer_button.place_forget()
-                self.increase_timer10_button.place_forget()
-                self.decrease_timer10_button.place_forget()
-            else:
-                self.timer_running = False
-                self.start_timer_button.config(text="Start Timer")
-                self.start_timer_seconds = self.timer_seconds
-                # Show Button
-                self.increase_timer_button.place(
-                    relx=0.362, rely=0.842, anchor="center"
-                )
-                self.decrease_timer_button.place(
-                    relx=0.615, rely=0.842, anchor="center"
-                )
-                self.increase_timer10_button.place(
-                    relx=0.385, rely=0.842, anchor="center"
-                )
-                self.decrease_timer10_button.place(
-                    relx=0.642, rely=0.842, anchor="center"
-                )
+    def show_start_timer_button(self, isStart):
+        if isStart:
+            self.start_timer_button.config(text="Stop Timer")
+            # Hide Button
+            self.increase_timer_button.place_forget()
+            self.decrease_timer_button.place_forget()
+            self.increase_timer10_button.place_forget()
+            self.decrease_timer10_button.place_forget()
         else:
-            self.timer_running = False
             self.start_timer_button.config(text="Start Timer")
-            self.start_timer_seconds = 3000
-            self.timer_seconds = 3000
-            self.update_timer()
             # Show Button
-            self.increase_timer_button.place(relx=0.362, rely=0.842, anchor="center")
-            self.decrease_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-            self.increase_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
-            self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
-
-    def countdown(self):
-        if self.timer_running:
-            elapsed_time = int(
-                (time.time() - self.start_time) * 100
-            )  # Calculate the elapsed time in milliseconds
-            self.timer_seconds = (
-                self.start_timer_seconds - elapsed_time
-            )  # Update the timer seconds
-
-            if self.timer_seconds > 0:
-                self.update_timer()
-                self.parent.after(10, self.countdown)
-            elif self.timer_seconds <= 0:  # 시간 종료로 경기가 끝났을 때
-                # 다음 라운드 준비
-                self.round += 1
-                self.start_timer_button.config(text="{} Round".format(self.round))
-                # Reset Timer Button
-                self.timer_running = False
-                self.is_start = False
-                self.start_timer_seconds = 0
-                self.timer_seconds = 0
-                self.update_timer()
-
-                # Play an MP3 file when the timer ends
-                pygame.mixer.music.play()
-
-                # Blink the winner's score
-                # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
+            self.increase_timer_button.place(
+                relx=0.362, rely=0.842, anchor="center"
+            )
+            self.decrease_timer_button.place(
+                relx=0.615, rely=0.842, anchor="center"
+            )
+            self.increase_timer10_button.place(
+                relx=0.385, rely=0.842, anchor="center"
+            )
+            self.decrease_timer10_button.place(
+                relx=0.642, rely=0.842, anchor="center"
+            )
+    
+    def play_sound(self):
+        # Play an MP3 file when the timer ends
+        pygame.mixer.music.play()
 
     def reset_timer(self):
-        self.timer_seconds = self.init_time
-        self.start_timer_seconds = self.init_time
+        self.timer.reset()
+        # self.timer_seconds = self.init_time
+        # self.start_timer_seconds = self.init_time
         self.update_timer()
 
         # Reset scores
@@ -480,13 +414,13 @@ class ScoreBoard:
         self.red_warning_state = -1
         self.blue_warning_state = -1
 
-        self.is_start = True  # 경고 상태 초기화
+        self.timer.is_start = True  # 경고 상태 초기화
         self.red_warning()
         self.blue_warning()
 
         # Reset Timer Button
-        self.timer_running = False
-        self.is_start = False
+        self.timer.timer_running = False
+        self.timer.is_start = False
         self.start_timer_button.config(text="Start Timer")
 
         # Show Button
@@ -496,71 +430,80 @@ class ScoreBoard:
         self.decrease_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
 
     def increase_timer(self, time):
-        self.timer_seconds += time
-        self.start_timer_seconds = self.timer_seconds
-        if not self.is_start:
-            self.init_time = self.timer_seconds
+        # self.timer.increase_timer(time)
         self.update_timer()
 
     def decrease_timer(self, time):
-        if (self.timer_seconds - time) > 0:
-            self.timer_seconds -= time
-            self.start_timer_seconds = self.timer_seconds
-            if not self.is_start:
-                self.init_time = self.timer_seconds
-            self.update_timer()
+        # if (self.timer.timer_seconds - time) > 0:
+        #     self.timer.decrease_timer(time)
+        self.update_timer()
+
+    def save_warning_widgets(self):
+        self.red_yellow_circle_place_info = self.red_yellow_circle.place_info()
+        self.red_red_circle1_place_info = self.red_red_circle1.place_info()
+        self.red_red_circle2_place_info = self.red_red_circle2.place_info()
+        self.blue_yellow_circle_place_info = self.blue_yellow_circle.place_info()
+        self.blue_red_circle1_place_info = self.blue_red_circle1.place_info()
+        self.blue_red_circle2_place_info = self.blue_red_circle2.place_info()
 
     def red_warning(self):
-        if self.is_start:
+        if self.timer.is_start:
             self.red_warning_state += 1
-
+            
             if self.red_warning_state == 1:
                 self.red_yellow_circle.config(image=self.yellow_circle_photo)
-                self.red_red_circle1.config(image="")
-                self.red_red_circle2.config(image="")
+                self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
+                self.red_red_circle1.place_forget()
+                self.red_red_circle2.place_forget()
             elif self.red_warning_state == 2:
-                self.red_yellow_circle.config(image="")
+                self.red_yellow_circle.place_forget()
                 self.red_red_circle1.config(image=self.red_circle_photo)
-                self.red_red_circle2.config(image="")
+                self.red_red_circle1.place(**self.red_red_circle1_place_info)
+                self.red_red_circle2.place_forget()
             elif self.red_warning_state == 3:
-                self.red_yellow_circle.config(image=self.yellow_circle_photo)
-                self.red_red_circle1.config(image=self.red_circle_photo)
-                self.red_red_circle2.config(image="")
+                self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
+                self.red_red_circle1.place(**self.red_red_circle1_place_info)
+                self.red_red_circle2.place_forget()
             elif self.red_warning_state == 4:
-                self.red_yellow_circle.config(image="")
-                self.red_red_circle1.config(image=self.red_circle_photo)
+                self.red_yellow_circle.place_forget()
+                self.red_red_circle1.place(**self.red_red_circle1_place_info)
                 self.red_red_circle2.config(image=self.red_circle_photo)
+                self.red_red_circle2.place(**self.red_red_circle2_place_info)
             else:
                 self.red_warning_state = 0
-                self.red_yellow_circle.config(image="")
-                self.red_red_circle1.config(image="")
-                self.red_red_circle2.config(image="")
+                self.red_yellow_circle.place_forget()
+                self.red_red_circle1.place_forget()
+                self.red_red_circle2.place_forget()
 
     def blue_warning(self):
-        if self.is_start:
+        print('blue_warning')
+        if self.timer.is_start:
             self.blue_warning_state += 1
 
             if self.blue_warning_state == 1:
                 self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-                self.blue_red_circle1.config(image="")
-                self.blue_red_circle2.config(image="")
+                self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
+                self.blue_red_circle1.place_forget()
+                self.blue_red_circle2.place_forget()
             elif self.blue_warning_state == 2:
-                self.blue_yellow_circle.config(image="")
+                self.blue_yellow_circle.place_forget()
                 self.blue_red_circle1.config(image=self.red_circle_photo)
-                self.blue_red_circle2.config(image="")
+                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+                self.blue_red_circle2.place_forget()
             elif self.blue_warning_state == 3:
-                self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-                self.blue_red_circle1.config(image=self.red_circle_photo)
-                self.blue_red_circle2.config(image="")
+                self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
+                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+                self.blue_red_circle2.place_forget()
             elif self.blue_warning_state == 4:
-                self.blue_yellow_circle.config(image="")
-                self.blue_red_circle1.config(image=self.red_circle_photo)
+                self.blue_yellow_circle.place_forget()
+                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
                 self.blue_red_circle2.config(image=self.red_circle_photo)
+                self.blue_red_circle2.place(**self.blue_red_circle2_place_info)
             else:
                 self.blue_warning_state = 0
-                self.blue_yellow_circle.config(image="")
-                self.blue_red_circle1.config(image="")
-                self.blue_red_circle2.config(image="")
+                self.blue_yellow_circle.place_forget()
+                self.blue_red_circle1.place_forget()
+                self.blue_red_circle2.place_forget()
 
     def resource_path(self, relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -584,35 +527,6 @@ class ScoreBoard:
 
         return adjusted_size
 
-    # Key event handlers
-    def on_key_pressed(self, event):
-        if (
-            self.parent.focus_get() != self.title_entry
-            and self.parent.focus_get() != self.red_name_entry
-            and self.parent.focus_get() != self.blue_name_entry
-        ):
-            key_code = event.keycode
-            if key_code == 49:  # 1
-                self.red_increase()
-            elif key_code == 50:  # 2
-                self.red_decrease()
-            elif key_code == 189:  # -
-                self.blue_increase()
-            elif key_code == 187:  # =
-                self.blue_decrease()
-            elif key_code == 52:  # 4
-                self.blink_winner(6, False)  # Red Win
-            elif key_code == 57:  # 9
-                self.blink_winner(6, True)  # Blue Win
-            elif key_code == 32:  # Spacebar
-                self.start_timer()
-            elif key_code == 13:  # Enter
-                self.toggle_fullscreen(self.parent.overrideredirect())
-            elif key_code == 27:  # Escape
-                self.toggle_fullscreen(True)
-        elif event.keycode == 13:  # Enter
-            self.parent.focus()
-            
     def toggle_fullscreen(self, isActivate=True):
         if isActivate:
             # deactivate full screen
@@ -649,18 +563,19 @@ class ScoreBoard:
 
 
 class ControlPanel(tk.Toplevel):
-    def __init__(self, master, scoreboard, monitor):
+    def __init__(self, master, scoreboard, monitor, timer):
         super().__init__(master)
         self.scoreboard = scoreboard
-
         self.monitor = monitor
+        self.timer = timer
+        
         self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
         self.overrideredirect(False)
 
         self.screen_width = self.monitor.width
         self.screen_height = self.monitor.height
 
-        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height)
+        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height, self.timer)
 
         self.title("컨트롤 패널")
 
@@ -728,8 +643,8 @@ class ControlPanel(tk.Toplevel):
         self.widgets.red_decrease()
 
     def update_red_warning(self):
-        self.scoreboard.widgets.red_warning()
         self.widgets.red_warning()
+        self.scoreboard.widgets.red_warning()
 
     def update_blue_score(self):
         self.scoreboard.widgets.blue_increase()
@@ -744,10 +659,12 @@ class ControlPanel(tk.Toplevel):
         self.widgets.blue_warning()
 
     def update_decrease_timer(self, value):
+        self.timer.decrease_timer(value)
         self.scoreboard.widgets.decrease_timer(value)
         self.widgets.decrease_timer(value)
 
     def update_increase_timer(self, value):
+        self.timer.increase_timer(value)
         self.scoreboard.widgets.increase_timer(value)
         self.widgets.increase_timer(value)
 
@@ -758,18 +675,42 @@ class ControlPanel(tk.Toplevel):
             and self.focus_get() != self.widgets.blue_name_entry
         ):
             key_code = event.keycode
-            if key_code != 13 and key_code != 27:  # Enter
-                self.scoreboard.widgets.on_key_pressed(event)
-
-        self.widgets.on_key_pressed(event)
+            if key_code == 49:  # 1
+                self.widgets.red_increase()
+                self.scoreboard.widgets.red_increase()
+            elif key_code == 50:  # 2
+                self.widgets.red_decrease()
+                self.scoreboard.widgets.red_decrease()
+            elif key_code == 189:  # -
+                self.widgets.blue_increase()
+                self.scoreboard.widgets.blue_increase()
+            elif key_code == 187:  # =
+                self.widgets.blue_decrease()
+                self.scoreboard.widgets.blue_decrease()
+            elif key_code == 52:  # 4
+                self.widgets.blink_winner(6, False)  # Red Win
+                self.scoreboard.widgets.blink_winner(6, False)  # Red Win
+            elif key_code == 57:  # 9
+                self.widgets.blink_winner(6, True)  # Blue Win
+                self.scoreboard.widgets.blink_winner(6, True)  # Blue Win
+            elif key_code == 32:  # Spacebar
+                self.start_timer()
+            elif key_code == 13:  # Enter
+                self.scoreboard.widgets.toggle_fullscreen(self.scoreboard.overrideredirect())
+                self.widgets.toggle_fullscreen(self.overrideredirect())
+            elif key_code == 27:  # Escape
+                self.scoreboard.widgets.toggle_fullscreen(True)
+                self.widgets.toggle_fullscreen(True)
+        elif event.keycode == 13:  # Enter
+            self.focus()
 
     def update_start_timer(self):
-        self.scoreboard.widgets.start_timer()
+        # self.scoreboard.widgets.start_timer()
         self.start_timer()
 
     def update_reset_timer(self):
-        self.scoreboard.widgets.reset_timer()
         self.widgets.reset_timer()
+        self.scoreboard.reset_timer()
 
     def swap_positions(self):
         red_widgets = [
@@ -809,45 +750,125 @@ class ControlPanel(tk.Toplevel):
 
             red_widget.place_configure(relx=blue_original_relx_values[i])
             blue_widget.place_configure(relx=red_original_relx_values[i])
-
-    def countdown(self):
-        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
-        self.widgets.countdown()
+            
+        self.widgets.save_warning_widgets()
 
     def start_timer(self):
-        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
-        self.widgets.time_remaining.set(self.scoreboard.widgets.time_remaining.get())
-        self.update_timer()
-        self.widgets.start_timer()
+        if self.timer.start_timer_seconds > 0:
+            if not self.timer.timer_running:
+                self.timer.start(True)
+                self.timer.is_start = True
+                self.widgets.show_start_timer_button(True) # Show 'Stop Timer' and Hide widgets
+                self.countdown()
+            else:
+                self.timer.start(False)
+                self.widgets.show_start_timer_button(False) # Show 'Start Timer' and Show widgets
+        else:
+            # 2라운드 시작
+            self.timer.timer_running = False
+            self.timer.is_start = False
+            self.timer.start_timer_seconds = 3000
+            self.timer.timer_seconds = 3000
+            self.widgets.update_timer()
+            self.widgets.show_start_timer_button(False) # Show 'Start Timer' and Show widgets
+            
+    def countdown(self):
+        if self.timer.timer_running:
+            self.timer.update_timer_seconds()
 
-    def update_timer(self):
-        self.widgets.timer_seconds = self.scoreboard.widgets.timer_seconds
-        self.widgets.update_timer()
+            if self.timer.timer_seconds > 0:
+                self.widgets.update_timer()
+                self.scoreboard.widgets.update_timer()
+                self.after(10, self.countdown)
+            elif self.timer.timer_seconds <= 0:  # 시간 종료로 경기가 끝났을 때
+                # 다음 라운드 준비
+                self.widgets.round += 1
+                self.widgets.start_timer_button.config(text="{} Round".format(self.widgets.round))
+                # Reset Timer Button
+                self.timer.timer_running = False
+                self.timer.is_start = False
+                self.timer.start_timer_seconds = 0
+                self.timer.timer_seconds = 0
+                
+                self.widgets.update_timer()
+                self.scoreboard.widgets.update_timer()
 
+                # Play an MP3 file when the timer ends
+                self.widgets.play_sound()
+                self.scoreboard.widgets.play_sound()
 
+                # Blink the winner's score
+                # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
+            
 class ViewPanel(tk.Toplevel):
-    def __init__(self, master, monitor):
+    def __init__(self, master, monitor, timer):
         super().__init__(master)
 
         self.title("스코어보드")
         self.monitor = monitor
+        self.timer = timer
         self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
         self.overrideredirect(False)
 
         self.screen_width = self.monitor.width
         self.screen_height = self.monitor.height
-        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height)
-
-        # Bind the keys
-        self.bind("<KeyPress>", self.update_on_key_pressed)
-
-    def update_on_key_pressed(self, event):
-        self.widgets.on_key_pressed(event)
+        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height, timer)
+        
+        # view panel에서 숨김
+        self.widgets.red_warning_button.place_forget()
+        self.widgets.red_button.place_forget()
+        self.widgets.red_button_minus.place_forget()
+        self.widgets.blue_warning_button.place_forget()
+        self.widgets.blue_button.place_forget()
+        self.widgets.blue_button_minus.place_forget()
+        self.widgets.red_warning_button.place_forget()
+        
+        self.widgets.start_timer_button.place_forget()
+        self.widgets.reset_timer_button.place_forget()
+        self.widgets.increase_timer_button.place_forget()
+        self.widgets.increase_timer10_button.place_forget()
+        self.widgets.decrease_timer_button.place_forget()
+        self.widgets.decrease_timer10_button.place_forget()
+        
+        # 위젯 크기 조정
+        self.widgets.red_panel.place(relheight=0.881)
+        self.widgets.blue_panel.place(relheight=0.881)
+        
+        self.widgets.save_warning_widgets()
 
     def init_geometry(self):
         self.geometry(
             f"{self.screen_width}x{self.screen_height}+{self.monitor.x}+{self.monitor.y}"
         )
+        
+    def start_timer(self):
+        if self.timer.start_timer_seconds > 0:
+            self.focus()
+
+            if not self.timer.timer_running:
+                self.widgets.countdown()
+        else:
+            self.widgets.update_timer()
+            
+    def reset_timer(self):
+        self.widgets.update_timer()
+
+        # Reset scores
+        self.widgets.round = 1
+        self.widgets.red_score = 0
+        self.widgets.blue_score = 0
+        self.widgets.red_label.config(text="{}".format(self.widgets.red_score))
+        self.widgets.blue_label.config(text="{}".format(self.widgets.blue_score))
+        self.widgets.red_warning_state = -1
+        self.widgets.blue_warning_state = -1
+
+        self.timer.is_start = True  # 경고 상태 초기화
+        self.widgets.red_warning()
+        self.widgets.blue_warning()
+
+        # Reset Timer Button
+        self.timer.timer_running = False
+        self.timer.is_start = False
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -856,9 +877,14 @@ if __name__ == "__main__":
     monitor = []
     for m in screeninfo.get_monitors():
         monitor.append(m)
+            
+    if len(monitor) == 1:
+        monitor.append(monitor[0])
+        
+    timer = Timer()
 
-    score_board = ViewPanel(root, monitor[1])
-    control_panel = ControlPanel(root, score_board, monitor[0])
+    score_board = ViewPanel(root, monitor[1], timer)
+    control_panel = ControlPanel(root, score_board, monitor[0], timer)
     control_panel.swap_positions()
 
     root.mainloop()
