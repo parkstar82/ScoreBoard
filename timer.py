@@ -32,7 +32,6 @@ class Timer:
             )
     
     def start(self, isStart):
-        print('timer start: ', isStart)
         self.timer_running = isStart
         
         if isStart:

@@ -24,18 +24,31 @@ class ScoreBoard:
         self.str_font = "굴림"  # Windows Basic 한글 Font
         self.str_number_font = "Arial"  # 숫자 폰트
         
-        self.title_font = (self.str_font, self.adjust_widget_size(80), "bold")
-        self.score_label_font = (self.str_number_font, self.adjust_widget_size(350))
-        self.warning_font = (self.str_font, self.adjust_widget_size(40))
-        self.name_font = (self.str_font, self.adjust_widget_size(60))
-        self.timer_1_10_button_font = (self.str_number_font, self.adjust_widget_size(13))
-        self.plus_minus_button_font = (self.str_number_font, self.adjust_widget_size(60))
-        self.timer_button_font = (self.str_number_font, self.adjust_widget_size(45))
-        self.reset_timer_button_font = (self.str_number_font, self.adjust_widget_size(15))
-        self.timer_label_width = self.adjust_widget_size(540)
-        self.timer_label_height = self.adjust_widget_size(175)
-        self.timer_label_font = (self.str_number_font, self.adjust_widget_size(100))
-        
+        # Const
+        self.title_font_size = 80
+        self.score_label_font_size = 350
+        self.warning_font_size = 40
+        self.name_font_size = 60
+        self.timer_1_10_button_font_size = 13
+        self.plus_minus_button_font_size = 60
+        self.timer_button_font_size = 45
+        self.reset_timer_button_font_size = 15
+        self.timer_label_width_size = 540
+        self.timer_label_height_size = 175
+        self.timer_label_font_size = 100
+
+        self.title_font = (self.str_font, self.adjust_widget_size(self.title_font_size), "bold")
+        self.score_label_font = (self.str_number_font, self.adjust_widget_size(self.score_label_font_size))
+        self.warning_font = (self.str_font, self.adjust_widget_size(self.warning_font_size))
+        self.name_font = (self.str_font, self.adjust_widget_size(self.name_font_size))
+        self.timer_1_10_button_font = (self.str_number_font, self.adjust_widget_size(self.timer_1_10_button_font_size))
+        self.plus_minus_button_font = (self.str_number_font, self.adjust_widget_size(self.plus_minus_button_font_size))
+        self.timer_button_font = (self.str_number_font, self.adjust_widget_size(self.timer_button_font_size))
+        self.reset_timer_button_font = (self.str_number_font, self.adjust_widget_size(self.reset_timer_button_font_size))
+        self.timer_label_width = self.adjust_widget_size(self.timer_label_width_size)
+        self.timer_label_height = self.adjust_widget_size(self.timer_label_height_size)
+        self.timer_label_font = (self.str_number_font, self.adjust_widget_size(self.timer_label_font_size))
+
         pygame.mixer.init()
         pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
 
@@ -265,17 +278,17 @@ class ScoreBoard:
         self.screen_height = self.parent.winfo_height()
 
         # update adjus widget size
-        self.title_font = (self.str_font, self.adjust_widget_size(80), "bold")
-        self.score_label_font = (self.str_number_font, self.adjust_widget_size(350))
-        self.warning_font = (self.str_font, self.adjust_widget_size(40))
-        self.name_font = (self.str_font, self.adjust_widget_size(60))
-        self.timer_1_10_button_font = (self.str_number_font, self.adjust_widget_size(13))
-        self.plus_minus_button_font = (self.str_number_font, self.adjust_widget_size(60))
-        self.timer_button_font = (self.str_number_font, self.adjust_widget_size(45))
-        self.reset_timer_button_font = (self.str_number_font, self.adjust_widget_size(15))
-        self.timer_label_width = self.adjust_widget_size(540)
-        self.timer_label_height = self.adjust_widget_size(175)
-        self.timer_label_font = (self.str_number_font, self.adjust_widget_size(100))
+        self.title_font = (self.str_font, self.adjust_widget_size(self.title_font_size), "bold")
+        self.score_label_font = (self.str_number_font, self.adjust_widget_size(self.score_label_font_size))
+        self.warning_font = (self.str_font, self.adjust_widget_size(self.warning_font_size))
+        self.name_font = (self.str_font, self.adjust_widget_size(self.name_font_size))
+        self.timer_1_10_button_font = (self.str_number_font, self.adjust_widget_size(self.timer_1_10_button_font_size))
+        self.plus_minus_button_font = (self.str_number_font, self.adjust_widget_size(self.plus_minus_button_font_size))
+        self.timer_button_font = (self.str_number_font, self.adjust_widget_size(self.timer_button_font_size))
+        self.reset_timer_button_font = (self.str_number_font, self.adjust_widget_size(self.reset_timer_button_font_size))
+        self.timer_label_width = self.adjust_widget_size(self.timer_label_width_size)
+        self.timer_label_height = self.adjust_widget_size(self.timer_label_height_size)
+        self.timer_label_font = (self.str_number_font, self.adjust_widget_size(self.timer_label_font_size))
         
         self.title_entry.config(font=self.title_font)
         self.red_label.config(font=self.score_label_font)
@@ -476,7 +489,6 @@ class ScoreBoard:
                 self.red_red_circle2.place_forget()
 
     def blue_warning(self):
-        print('blue_warning')
         if self.timer.is_start:
             self.blue_warning_state += 1
 
@@ -833,6 +845,11 @@ class ViewPanel(tk.Toplevel):
         # 위젯 크기 조정
         self.widgets.red_panel.place(relheight=0.881)
         self.widgets.blue_panel.place(relheight=0.881)
+        
+        self.widgets.name_font_size = 80
+        self.widgets.name_font = (self.widgets.str_font, self.widgets.adjust_widget_size(self.widgets.name_font_size))
+        self.widgets.red_name_entry.config(font=self.widgets.name_font)
+        self.widgets.blue_name_entry.config(font=self.widgets.name_font)
         
         self.widgets.save_warning_widgets()
 
