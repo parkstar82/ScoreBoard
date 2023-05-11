@@ -3,6 +3,8 @@
 A simple scoreboard application with timer functionality, built using Python and Tkinter.
 Python과 Tkinter를 사용하여 만든 간단한 스코어보드 및 타이머 기능이 있는 애플리케이션입니다.
 
+![스크린샷](/images/scoreboard_screenshot.png)
+
 ## Features / 기능
 
 - Display red and blue team scores / 빨간 팀과 파란 팀의 점수 표시
