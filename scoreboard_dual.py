@@ -107,10 +107,6 @@ class ScoreBoard:
         self.red_red_circle2 = tk.Label(self.red_warning_box, bg="black")
         self.red_red_circle2.place(relx=0.85, rely=0.5, anchor="center")
         
-        self.red_yellow_circle.config(image=self.yellow_circle_photo)
-        self.red_red_circle1.config(image=self.red_circle_photo)
-        self.red_red_circle2.config(image=self.red_circle_photo)
-
         # Warning state
         self.red_warning_state = 0
 
