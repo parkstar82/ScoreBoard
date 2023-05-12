@@ -79,7 +79,7 @@ class ScoreBoard:
             bg="red",
             font=self.score_label_font,
         )
-        self.red_label.pack(anchor="center", pady=20, padx=20)
+        self.red_label.place(relx=0.5, rely=0.4, anchor='center')
 
         # Warning buttons
         self.red_warning_button = tk.Button(
@@ -95,17 +95,21 @@ class ScoreBoard:
 
         self.red_warning_box = tk.Frame(self.red_panel, bg="black")
         self.red_warning_box.place(
-            relx=0.48, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
+            relx=0.5, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
         )
 
-        self.red_yellow_circle = tk.Label(self.red_panel, bg="black")
-        self.red_yellow_circle.place(relx=0.35, rely=0.8, anchor="center")
+        self.red_yellow_circle = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle.place(relx=0.15, rely=0.5, anchor="center")
 
-        self.red_red_circle1 = tk.Label(self.red_panel, bg="black")
-        self.red_red_circle1.place(relx=0.47, rely=0.8, anchor="center")
+        self.red_red_circle1 = tk.Label(self.red_warning_box, bg="black")
+        self.red_red_circle1.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.red_red_circle2 = tk.Label(self.red_panel, bg="black")
-        self.red_red_circle2.place(relx=0.59, rely=0.8, anchor="center")
+        self.red_red_circle2 = tk.Label(self.red_warning_box, bg="black")
+        self.red_red_circle2.place(relx=0.85, rely=0.5, anchor="center")
+        
+        self.red_yellow_circle.config(image=self.yellow_circle_photo)
+        self.red_red_circle1.config(image=self.red_circle_photo)
+        self.red_red_circle2.config(image=self.red_circle_photo)
 
         # Warning state
         self.red_warning_state = 0
@@ -121,6 +125,9 @@ class ScoreBoard:
             insertbackground='yellow'
         )
         self.red_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
+        self.red_name_entry.place(
+            relx=0.5, rely=0.94, anchor="center", relwidth=1.0, relheight=0.12
+        )
         # Set initial text
         initial_red_name_text = "홍길동"
         self.red_name_entry.insert(0, initial_red_name_text)
@@ -136,7 +143,7 @@ class ScoreBoard:
             bg="blue",
             font=self.score_label_font,
         )
-        self.blue_label.pack(anchor="center", pady=20, padx=20)
+        self.blue_label.place(relx=0.5, rely=0.4, anchor='center')
 
         # Warning buttons
         self.blue_warning_button = tk.Button(
@@ -150,17 +157,21 @@ class ScoreBoard:
         # Warning circles
         self.blue_warning_box = tk.Frame(self.blue_panel, bg="black")
         self.blue_warning_box.place(
-            relx=0.52, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
+            relx=0.5, rely=0.8, relwidth=0.4, relheight=0.12, anchor="center"
         )
 
-        self.blue_yellow_circle = tk.Label(self.blue_panel, bg="black")
-        self.blue_yellow_circle.place(relx=0.39, rely=0.8, anchor="center")
+        self.blue_yellow_circle = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_yellow_circle.place(relx=0.15, rely=0.5, anchor="center")
 
-        self.blue_red_circle1 = tk.Label(self.blue_panel, bg="black")
-        self.blue_red_circle1.place(relx=0.51, rely=0.8, anchor="center")
+        self.blue_red_circle1 = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_red_circle1.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.blue_red_circle2 = tk.Label(self.blue_panel, bg="black")
-        self.blue_red_circle2.place(relx=0.64, rely=0.8, anchor="center")
+        self.blue_red_circle2 = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_red_circle2.place(relx=0.85, rely=0.5, anchor="center")
+        
+        self.blue_yellow_circle.config(image=self.yellow_circle_photo)
+        self.blue_red_circle1.config(image=self.red_circle_photo)
+        self.blue_red_circle2.config(image=self.red_circle_photo)
 
         # Warning state
         self.blue_warning_state = 0
@@ -175,7 +186,9 @@ class ScoreBoard:
             width=self.adjust_widget_size(50),
             insertbackground='yellow'
         )
-        self.blue_name_entry.pack(anchor="center", side="bottom", pady=0, padx=0)
+        self.blue_name_entry.place(
+            relx=0.5, rely=0.94, anchor="center", relwidth=1.0, relheight=0.12
+        )
         # Set initial text
         initial_blue_name_text = "청길동"
         self.blue_name_entry.insert(0, initial_blue_name_text)
@@ -274,6 +287,7 @@ class ScoreBoard:
         
     def on_resize(self, event):
         # Update the screen width and height
+        print('on_resize')
         self.screen_width = self.parent.winfo_width()
         self.screen_height = self.parent.winfo_height()
 
@@ -688,23 +702,23 @@ class ControlPanel(tk.Toplevel):
         ):
             key_code = event.keycode
             if key_code == 49:  # 1
-                self.widgets.red_increase()
-                self.scoreboard.widgets.red_increase()
-            elif key_code == 50:  # 2
-                self.widgets.red_decrease()
-                self.scoreboard.widgets.red_decrease()
-            elif key_code == 189:  # -
                 self.widgets.blue_increase()
                 self.scoreboard.widgets.blue_increase()
-            elif key_code == 187:  # =
+            elif key_code == 50:  # 2
                 self.widgets.blue_decrease()
                 self.scoreboard.widgets.blue_decrease()
+            elif key_code == 189:  # -
+                self.widgets.red_increase()
+                self.scoreboard.widgets.red_increase()
+            elif key_code == 187:  # =
+                self.widgets.red_decrease()
+                self.scoreboard.widgets.red_decrease()
             elif key_code == 52:  # 4
-                self.widgets.blink_winner(6, False)  # Red Win
-                self.scoreboard.widgets.blink_winner(6, False)  # Red Win
-            elif key_code == 57:  # 9
                 self.widgets.blink_winner(6, True)  # Blue Win
                 self.scoreboard.widgets.blink_winner(6, True)  # Blue Win
+            elif key_code == 57:  # 9
+                self.widgets.blink_winner(6, False)  # Red Win
+                self.scoreboard.widgets.blink_winner(6, False)  # Red Win
             elif key_code == 32:  # Spacebar
                 self.start_timer()
             elif key_code == 13:  # Enter
@@ -850,6 +864,8 @@ class ViewPanel(tk.Toplevel):
         self.widgets.name_font = (self.widgets.str_font, self.widgets.adjust_widget_size(self.widgets.name_font_size))
         self.widgets.red_name_entry.config(font=self.widgets.name_font)
         self.widgets.blue_name_entry.config(font=self.widgets.name_font)
+        self.widgets.red_label.config(pady=60, padx=20)
+        self.widgets.blue_label.config(pady=60, padx=20)
         
         self.widgets.save_warning_widgets()
 
