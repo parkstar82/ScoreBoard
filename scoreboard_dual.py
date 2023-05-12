@@ -279,7 +279,6 @@ class ScoreBoard:
         
     def on_resize(self, event):
         # Update the screen width and height
-        print('on_resize')
         self.screen_width = self.parent.winfo_width()
         self.screen_height = self.parent.winfo_height()
 
@@ -788,6 +787,7 @@ class ControlPanel(tk.Toplevel):
             self.timer.start_timer_seconds = 3000
             self.timer.timer_seconds = 3000
             self.widgets.update_timer()
+            self.scoreboard.widgets.update_timer()
             self.widgets.show_start_timer_button(False) # Show 'Start Timer' and Show widgets
             
     def countdown(self):
