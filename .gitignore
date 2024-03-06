@@ -2,3 +2,6 @@
 /venv
 /.vscode
 memo.txt
+/__pycache__
+*.bat
+/test
