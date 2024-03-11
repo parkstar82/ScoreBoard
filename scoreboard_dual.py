@@ -536,62 +536,62 @@ class ScoreBoard:
         self.blue_red_circle2_place_info = self.blue_red_circle2.place_info()
 
     def red_warning(self):
-        if self.timer.is_start:
-            self.red_warning_state += 1
-            
-            if self.red_warning_state == 1:
-                self.red_yellow_circle.config(image=self.yellow_circle_photo)
-                self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
-                self.red_red_circle1.place_forget()
-                self.red_red_circle2.place_forget()
-            elif self.red_warning_state == 2:
-                self.red_yellow_circle.place_forget()
-                self.red_red_circle1.config(image=self.red_circle_photo)
-                self.red_red_circle1.place(**self.red_red_circle1_place_info)
-                self.red_red_circle2.place_forget()
-            elif self.red_warning_state == 3:
-                self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
-                self.red_red_circle1.place(**self.red_red_circle1_place_info)
-                self.red_red_circle2.place_forget()
-            elif self.red_warning_state == 4:
-                self.red_yellow_circle.place_forget()
-                self.red_red_circle1.place(**self.red_red_circle1_place_info)
-                self.red_red_circle2.config(image=self.red_circle_photo)
-                self.red_red_circle2.place(**self.red_red_circle2_place_info)
-            else:
-                self.red_warning_state = 0
-                self.red_yellow_circle.place_forget()
-                self.red_red_circle1.place_forget()
-                self.red_red_circle2.place_forget()
+        #if self.timer.is_start:
+        self.red_warning_state += 1
+        
+        if self.red_warning_state == 1:
+            self.red_yellow_circle.config(image=self.yellow_circle_photo)
+            self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
+            self.red_red_circle1.place_forget()
+            self.red_red_circle2.place_forget()
+        elif self.red_warning_state == 2:
+            self.red_yellow_circle.place_forget()
+            self.red_red_circle1.config(image=self.red_circle_photo)
+            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_red_circle2.place_forget()
+        elif self.red_warning_state == 3:
+            self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
+            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_red_circle2.place_forget()
+        elif self.red_warning_state == 4:
+            self.red_yellow_circle.place_forget()
+            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_red_circle2.config(image=self.red_circle_photo)
+            self.red_red_circle2.place(**self.red_red_circle2_place_info)
+        else:
+            self.red_warning_state = 0
+            self.red_yellow_circle.place_forget()
+            self.red_red_circle1.place_forget()
+            self.red_red_circle2.place_forget()
 
     def blue_warning(self):
-        if self.timer.is_start:
-            self.blue_warning_state += 1
+        #if self.timer.is_start:
+        self.blue_warning_state += 1
 
-            if self.blue_warning_state == 1:
-                self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-                self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
-                self.blue_red_circle1.place_forget()
-                self.blue_red_circle2.place_forget()
-            elif self.blue_warning_state == 2:
-                self.blue_yellow_circle.place_forget()
-                self.blue_red_circle1.config(image=self.red_circle_photo)
-                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
-                self.blue_red_circle2.place_forget()
-            elif self.blue_warning_state == 3:
-                self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
-                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
-                self.blue_red_circle2.place_forget()
-            elif self.blue_warning_state == 4:
-                self.blue_yellow_circle.place_forget()
-                self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
-                self.blue_red_circle2.config(image=self.red_circle_photo)
-                self.blue_red_circle2.place(**self.blue_red_circle2_place_info)
-            else:
-                self.blue_warning_state = 0
-                self.blue_yellow_circle.place_forget()
-                self.blue_red_circle1.place_forget()
-                self.blue_red_circle2.place_forget()
+        if self.blue_warning_state == 1:
+            self.blue_yellow_circle.config(image=self.yellow_circle_photo)
+            self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
+            self.blue_red_circle1.place_forget()
+            self.blue_red_circle2.place_forget()
+        elif self.blue_warning_state == 2:
+            self.blue_yellow_circle.place_forget()
+            self.blue_red_circle1.config(image=self.red_circle_photo)
+            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_red_circle2.place_forget()
+        elif self.blue_warning_state == 3:
+            self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
+            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_red_circle2.place_forget()
+        elif self.blue_warning_state == 4:
+            self.blue_yellow_circle.place_forget()
+            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_red_circle2.config(image=self.red_circle_photo)
+            self.blue_red_circle2.place(**self.blue_red_circle2_place_info)
+        else:
+            self.blue_warning_state = 0
+            self.blue_yellow_circle.place_forget()
+            self.blue_red_circle1.place_forget()
+            self.blue_red_circle2.place_forget()
 
     def resource_path(self, relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -876,13 +876,6 @@ class ControlPanel(tk.Toplevel):
                 self.scoreboard.widgets.update_timer()
                 self.after(10, self.countdown)
             elif self.timer.timer_seconds <= 0:  # 시간 종료로 경기가 끝났을 때
-                # save_screenshot
-                self.save_screenshot()
-                
-                # Update round number
-                # 다음 라운드 준비
-                self.widgets.round += 1
-                self.widgets.start_timer_button.config(text="{} Round".format(self.widgets.round))
                 # Reset Timer Button
                 self.timer.timer_running = False
                 self.timer.is_start = False
@@ -895,6 +888,14 @@ class ControlPanel(tk.Toplevel):
                 # Play an MP3 file when the timer ends
                 self.widgets.play_sound()
                 self.scoreboard.widgets.play_sound()
+                
+                # save_screenshot
+                self.save_screenshot()
+                
+                # Update round number
+                # 다음 라운드 준비
+                self.widgets.round += 1
+                self.widgets.start_timer_button.config(text="{} Round".format(self.widgets.round))
 
                 # Blink the winner's score
                 # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
@@ -910,11 +911,11 @@ class ControlPanel(tk.Toplevel):
         file_name = (
             self.widgets.title_entry.get() + '_' +
             self.widgets.weight_entry.get() + '_' +
-            str(self.widgets.round) + '_' +
+            str(self.widgets.round) + 'R_' +
             self.widgets.red_name_entry.get() + '_' +
-            str(self.widgets.red_score) + '_' +
+            str(self.widgets.red_score) + '점_' +
             self.widgets.blue_name_entry.get() + '_' +
-            str(self.widgets.blue_score) + '.png'
+            str(self.widgets.blue_score) + '점.png'
         )
 
         # Get the handle of the window
