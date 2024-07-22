@@ -801,6 +801,30 @@ class ControlPanel(tk.Toplevel):
         점수 로그 화면 표시
           - 시간-행위 쌍으로 표시(01:22 +1)
         '''
+        style = ttk.Style(root)
+        style.theme_use("clam")
+        
+        def fixed_map(option):
+            # Fix for setting text colour for Tkinter 8.6.9
+            # From: https://core.tcl.tk/tk/info/509cafafae
+            #
+            # Returns the style map for 'option' with any styles starting with
+            # ('!disabled', '!selected', ...) filtered out.
+
+            # style.map() returns an empty list for missing options, so this
+            # should be future-safe.
+            return [elm for elm in style.map('Treeview', query_opt=option) if
+            elm[:2] != ('!disabled', '!selected')]
+
+        style.map('Treeview', foreground=fixed_map('foreground'), background=fixed_map('background'), fieldbackground=fixed_map('fieldbackground'))
+        
+        log_font = (
+            self.widgets.str_number_font,
+            self.widgets.adjust_widget_size(15),
+        )
+        log_rowheight = self.widgets.adjust_widget_size(30)
+        style.configure("Red.Treeview", background="#F5E6D3", foreground="black", fieldbackground="red", font=log_font, rowheight=log_rowheight)
+        style.configure("Blue.Treeview", background="#F5E6D3", foreground="black", fieldbackground="blue", font=log_font, rowheight=log_rowheight)
         
         #red
         self.red_log_panel = tk.Frame(self.widgets.red_panel, bg='black')
@@ -808,8 +832,8 @@ class ControlPanel(tk.Toplevel):
         
         self.red_log_view = ttk.Treeview(self.red_log_panel, columns=("time",), show='tree', style="Red.Treeview")
         
-        self.red_log_view.column('#0', width=30, anchor=tk.CENTER)
-        self.red_log_view.column("time", width=80, anchor=tk.CENTER)
+        self.red_log_view.column('#0', width=35, anchor=tk.CENTER)
+        self.red_log_view.column("time", width=75, anchor=tk.CENTER)
         
         # Red Treeview 태그 설정
         self.red_log_view.tag_configure('odd_row', background='#FFD1D1')
@@ -824,25 +848,15 @@ class ControlPanel(tk.Toplevel):
         
         self.blue_log_view = ttk.Treeview(self.blue_log_panel, columns=("time",), show='tree', style="Blue.Treeview")
         
-        self.blue_log_view.column('#0', width=30, anchor=tk.CENTER)
-        self.blue_log_view.column("time", width=80, anchor=tk.CENTER)
+        self.blue_log_view.column('#0', width=35, anchor=tk.CENTER)
+        self.blue_log_view.column("time", width=75, anchor=tk.CENTER)
         
         # Blue Treeview 태그 설정
         self.blue_log_view.tag_configure('odd_row', background='#D1D1FF')
         self.blue_log_view.tag_configure('even_row', background='#E8E8FF')
         self.blue_log_view.tag_configure('round_row', background='#00008B', foreground='white')
         
-        self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        style = ttk.Style(root)
-        style.theme_use("clam")
-        log_font = (
-            self.widgets.str_number_font,
-            self.widgets.adjust_widget_size(15),
-        )
-        log_rowheight = self.widgets.adjust_widget_size(30)
-        style.configure("Red.Treeview", background="#F5E6D3", foreground="black", fieldbackground="red", font=log_font, rowheight=log_rowheight)
-        style.configure("Blue.Treeview", background="#F5E6D3", foreground="black", fieldbackground="blue", font=log_font, rowheight=log_rowheight)
+        self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)   
         
     # 아이템을 추가할 때 태그를 적용하는 메서드
     def add_log_item(self, treeview, time, image=None, text=None):
@@ -1380,6 +1394,7 @@ class ViewPanel(tk.Toplevel):
 
 if __name__ == "__main__":
     root = tk.Tk()
+    s = ttk.Style()
     root.withdraw()
 
     monitor = []
