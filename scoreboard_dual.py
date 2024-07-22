@@ -6,6 +6,7 @@ import pygame
 import os
 import sys
 import tkinter as tk
+from tkinter import ttk
 from tkinter import font as tkfont
 from PIL import Image, ImageTk
 import screeninfo
@@ -517,6 +518,24 @@ class ScoreBoard:
         self.red_circle_photo = ImageTk.PhotoImage(
             self.red_circle_image, master=self.parent
         )
+        
+        #logo image
+        self.logo_image = Image.open(self.resource_path("logo.jpg"))
+        logo_adjust_image_size = self.adjust_widget_size(480)
+        self.logo_image = self.logo_image.resize(
+            (logo_adjust_image_size, logo_adjust_image_size), Image.LANCZOS
+        )
+        self.resize_logo_image = ImageTk.PhotoImage(
+            self.logo_image, master=self.parent
+        )
+        
+        log_adjust_image_size = self.adjust_widget_size(15)
+        self.log_yellow_circle_image = self.yellow_circle_image.resize(
+            (log_adjust_image_size, log_adjust_image_size), Image.LANCZOS
+        )
+        self.log_yellow_circle_photo = ImageTk.PhotoImage(
+            self.log_yellow_circle_image, master=self.parent
+        )
 
     def red_increase(self):
         self.red_score += 1
@@ -772,6 +791,192 @@ class ControlPanel(tk.Toplevel):
         self.widgets.red_name_entry.bind("<KeyRelease>", self.copy_red_name_entry)
         self.widgets.blue_name_entry.bind("<KeyRelease>", self.copy_blue_name_entry)
         # self.widgets.weight_entry.bind("<KeyRelease>", self.copy_weight_entry)
+        
+        self.init_menu()
+        self.init_log()
+        self.add_round_row()
+        
+    def init_log(self):
+        '''
+        점수 로그 화면 표시
+          - 시간-행위 쌍으로 표시(01:22 +1)
+        '''
+        
+        #red
+        self.red_log_panel = tk.Frame(self.widgets.red_panel, bg='black')
+        self.red_log_panel.place(relx=0.85, rely=0, relwidth=0.15, relheight=0.88)
+        
+        self.red_log_view = ttk.Treeview(self.red_log_panel, columns=("time",), show='tree', style="Red.Treeview")
+        
+        self.red_log_view.column('#0', width=30, anchor=tk.CENTER)
+        self.red_log_view.column("time", width=80, anchor=tk.CENTER)
+        
+        # Red Treeview 태그 설정
+        self.red_log_view.tag_configure('odd_row', background='#FFD1D1')
+        self.red_log_view.tag_configure('even_row', background='#FFE8E8')
+        self.red_log_view.tag_configure('round_row', background='#8B0000', foreground='white')
+        
+        self.red_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # blue
+        self.blue_log_panel = tk.Frame(self.widgets.blue_panel)
+        self.blue_log_panel.place(relx=0, rely=0, relwidth=0.15, relheight=0.88)
+        
+        self.blue_log_view = ttk.Treeview(self.blue_log_panel, columns=("time",), show='tree', style="Blue.Treeview")
+        
+        self.blue_log_view.column('#0', width=30, anchor=tk.CENTER)
+        self.blue_log_view.column("time", width=80, anchor=tk.CENTER)
+        
+        # Blue Treeview 태그 설정
+        self.blue_log_view.tag_configure('odd_row', background='#D1D1FF')
+        self.blue_log_view.tag_configure('even_row', background='#E8E8FF')
+        self.blue_log_view.tag_configure('round_row', background='#00008B', foreground='white')
+        
+        self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        style = ttk.Style(root)
+        style.theme_use("clam")
+        log_font = (
+            self.widgets.str_number_font,
+            self.widgets.adjust_widget_size(15),
+        )
+        log_rowheight = self.widgets.adjust_widget_size(30)
+        style.configure("Red.Treeview", background="#F5E6D3", foreground="black", fieldbackground="red", font=log_font, rowheight=log_rowheight)
+        style.configure("Blue.Treeview", background="#F5E6D3", foreground="black", fieldbackground="blue", font=log_font, rowheight=log_rowheight)
+        
+    # 아이템을 추가할 때 태그를 적용하는 메서드
+    def add_log_item(self, treeview, time, image=None, text=None):
+        item_count = len(treeview.get_children())
+        tag = 'odd_row' if item_count % 2 == 0 else 'even_row'
+        
+        if image:
+            treeview.insert("", tk.END, values=(time,), image=image, tags=(tag,))
+        elif text is not None:
+            treeview.insert("", tk.END, values=(time,), text=text, tags=(tag,))
+            
+    def _add_empty_item(self, treeview):
+        item_count = len(treeview.get_children())
+        tag = 'odd_row' if item_count % 2 == 0 else 'even_row'
+        treeview.insert("", tk.END, values=("",), tags=(tag,))
+            
+    def balance_log_views(self):
+        '''양쪽 log view 높이 맞추기'''
+        red_count = len(self.red_log_view.get_children())
+        blue_count = len(self.blue_log_view.get_children())
+        
+        target_count = max(red_count, blue_count)
+        
+        while len(self.red_log_view.get_children()) < target_count:
+            self._add_empty_item(self.red_log_view)
+        
+        while len(self.blue_log_view.get_children()) < target_count:
+            self._add_empty_item(self.blue_log_view)
+            
+    def add_round_row(self):
+        self.balance_log_views()
+        
+        self.red_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
+        self.blue_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
+    
+    def init_menu(self):
+        '''
+        상단 메뉴
+        '''
+        menubar = tk.Menu(self)
+        
+        helpmenu = tk.Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="프로그램 정보", command=self.help_dialog)
+        
+        menubar.add_cascade(label="Help", menu=helpmenu)
+        
+        self.config(menu=menubar)
+        self.menubar = menubar
+        
+        self.help_dialog = None
+        
+    def help_dialog(self):
+        '''
+        탭 윈도우
+        탭1 제작 및 배포 - 전북합기도 이미지
+        탭2 단축키 - 단축키 리스트
+        '''
+        
+        # Check if a help_dialog instance already exists
+        if self.help_dialog is not None and self.help_dialog.winfo_exists():
+            # If it does, focus on the existing window
+            self.help_dialog.focus_force()
+            return
+        
+        self.help_dialog = tk.Toplevel(self)
+        self.help_dialog.title("프로그램 정보")
+        self.help_dialog.geometry("480x270")  # Set a reasonable initial size
+        # Center the dialog on the screen
+        self.center_window(self.help_dialog)
+            
+        notebook = ttk.Notebook(self.help_dialog)
+
+        # 탭 1: 이미지
+        tab1 = tk.Frame(notebook)
+        image_label = tk.Label(tab1, image=self.widgets.resize_logo_image)
+        image_label.pack()
+
+        notebook.add(tab1, text="제작자")
+
+        # 탭 2: 단축키목록
+        self.shortcut_data = [
+            ("1", "파란색 점수 증가"),
+            ("2", "파란색 점수 감소"),
+            ("-", "빨간색 점수 증가"),
+            ("=", "빨간색 점수 감소"),
+            ("4", "파란색 승리 표시 (깜박임)"),
+            ("9", "빨간색 승리 표시 (깜박임)"),
+            ("스페이스바", "타이머 시작"),
+            ("엔터", "전체 화면 모드 전환"),
+            ("Esc", "전체 화면 모드 종료"),
+        ]
+        
+        tab2 = tk.Frame(notebook)
+        # Create the Treeview with headings
+        treeview = ttk.Treeview(tab2, columns=("단축키", "설명"), show="headings")
+
+        # Define column headings
+        treeview.heading("단축키", text="단축키")
+        treeview.heading("설명", text="설명")
+
+        # Insert shortcut data into Treeview
+        for shortcut, description in self.shortcut_data:
+            treeview.insert("", tk.END, values=(shortcut, description))
+
+        treeview.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        yscrollbar = tk.Scrollbar(tab2)
+        yscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        treeview.config(yscrollcommand=yscrollbar.set)
+        yscrollbar.config(command=treeview.yview)
+
+        notebook.add(tab2, text="단축키")
+
+        notebook.pack(fill=tk.BOTH, expand=True)
+                
+    def center_window(self, window):
+        '''
+        help dialog 화면 가운데 위치
+        '''
+        # Get screen width and height
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+
+        # Get window width and height
+        window_width = window.winfo_screenmmwidth()
+        window_height = window.winfo_screenmmheight()
+
+        # Calculate center coordinates
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+
+        # Set the window position
+        window.geometry(f"+{x}+{y}")
+        
 
     def init_geometry(self):
         self.geometry(
@@ -809,26 +1014,32 @@ class ControlPanel(tk.Toplevel):
     def update_red_score(self):
         self.scoreboard.widgets.red_increase()
         self.widgets.red_increase()
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(),text="+1")
 
     def update_red_decrease(self):
         self.scoreboard.widgets.red_decrease()
         self.widgets.red_decrease()
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(),text="-1")
 
     def update_red_warning(self):
         self.widgets.red_warning()
         self.scoreboard.widgets.red_warning()
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), image=self.widgets.log_yellow_circle_photo)
 
     def update_blue_score(self):
         self.scoreboard.widgets.blue_increase()
         self.widgets.blue_increase()
+        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), text="+1")
 
     def update_blue_decrease(self):
         self.scoreboard.widgets.blue_decrease()
         self.widgets.blue_decrease()
+        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), text="-1")
 
     def update_blue_warning(self):
         self.scoreboard.widgets.blue_warning()
         self.widgets.blue_warning()
+        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), image=self.widgets.log_yellow_circle_photo)
 
     def update_decrease_timer(self, value):
         self.timer.decrease_timer(value)
@@ -849,17 +1060,21 @@ class ControlPanel(tk.Toplevel):
         ):
             key_code = event.keycode
             if key_code == 49:  # 1
-                self.widgets.blue_increase()
-                self.scoreboard.widgets.blue_increase()
+                self.update_blue_score()
+                # self.widgets.blue_increase()
+                # self.scoreboard.widgets.blue_increase()
             elif key_code == 50:  # 2
-                self.widgets.blue_decrease()
-                self.scoreboard.widgets.blue_decrease()
+                self.update_blue_decrease()
+                # self.widgets.blue_decrease()
+                # self.scoreboard.widgets.blue_decrease()
             elif key_code == 189:  # -
-                self.widgets.red_increase()
-                self.scoreboard.widgets.red_increase()
+                # self.widgets.red_increase()
+                # self.scoreboard.widgets.red_increase()
+                self.update_red_score()
             elif key_code == 187:  # =
-                self.widgets.red_decrease()
-                self.scoreboard.widgets.red_decrease()
+                # self.widgets.red_decrease()
+                # self.scoreboard.widgets.red_decrease()
+                self.update_red_decrease()
             elif key_code == 52:  # 4
                 self.widgets.blink_winner(6, True)  # Blue Win
                 self.scoreboard.widgets.blink_winner(6, True)  # Blue Win
@@ -873,9 +1088,17 @@ class ControlPanel(tk.Toplevel):
                     self.scoreboard.overrideredirect()
                 )
                 self.widgets.toggle_fullscreen(self.overrideredirect())
+                
+                if self.overrideredirect():
+                    self.config(menu="")
+                else:
+                    self.config(menu=self.menubar)
+                
             elif key_code == 27:  # Escape
                 self.scoreboard.widgets.toggle_fullscreen(True)
                 self.widgets.toggle_fullscreen(True)
+                self.config(menu=self.menubar)
+                
         elif event.keycode == 13:  # Enter
             self.focus()
 
@@ -884,8 +1107,16 @@ class ControlPanel(tk.Toplevel):
         self.start_timer()
 
     def update_reset_timer(self):
+        '''
+        reset_timer 재정의
+        '''
         self.widgets.reset_timer()
         self.scoreboard.reset_timer()
+        # delete logs
+        self.red_log_view.delete(*self.red_log_view.get_children())
+        self.blue_log_view.delete(*self.blue_log_view.get_children())
+        # 1R add
+        self.add_round_row()
 
     def swap_positions(self):
         red_widgets = [
@@ -980,11 +1211,14 @@ class ControlPanel(tk.Toplevel):
                 self.save_screenshot()
 
                 # Update round number
-                # 다음 라운드 준비
                 self.widgets.round += 1
                 self.widgets.start_timer_button.config(
                     text="{} Round".format(self.widgets.round)
                 )
+                
+                # Add round log
+                self.add_round_row()
+                
 
                 # Blink the winner's score
                 # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
