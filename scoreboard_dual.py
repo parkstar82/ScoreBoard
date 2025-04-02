@@ -18,7 +18,20 @@ import win32con
 
 
 class ScoreBoard:
+    """
+    Main scoreboard class for managing UI components and game logic.
+    """
+
     def __init__(self, parent, screen_width, screen_height, timer):
+        """
+        Initialize the scoreboard with UI components and default values.
+
+        Args:
+            parent (tk.Tk or tk.Toplevel): Parent window for the scoreboard.
+            screen_width (int): Width of the screen.
+            screen_height (int): Height of the screen.
+            timer (Timer): Timer object for managing countdowns.
+        """
         self.parent = parent
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -323,6 +336,9 @@ class ScoreBoard:
         self.parent.bind("<Configure>", self.on_resize)
 
     def on_resize(self, event):
+        """
+        Handle window resize events and adjust widget sizes accordingly.
+        """
         # Update the screen width and height
         self.screen_width = self.parent.winfo_width()
         self.screen_height = self.parent.winfo_height()
@@ -400,6 +416,9 @@ class ScoreBoard:
         )
 
     def init_timer_label(self):
+        """
+        Initialize the timer label widget.
+        """
         # Timer
         self.time_remaining = tk.StringVar(self.parent)
         self.time_remaining.set(timer.get_time_remaining())
@@ -431,7 +450,7 @@ class ScoreBoard:
             anchor="center",
         )
 
-    # def adjust_font_size(self):
+# def adjust_font_size(self):
     #     """weight_entry 폰트의 사이즈를 text overflow 하지 않게 조정한다.
     #     1. 입력된 글자가 많으면 폰트 사이즈를 크게한다.
     #     2. 입력된 글자가 적으면 폰트 사이즈를 작게한다
@@ -479,6 +498,9 @@ class ScoreBoard:
     #     self.weight_entry.config(font=self.weight_font)
 
     def init_weight_entry(self):
+        """
+        Initialize the weight entry widget.
+        """
         self.text_var = tk.StringVar()
 
         self.weight_entry = tk.Entry(
@@ -685,7 +707,15 @@ class ScoreBoard:
             self.blue_red_circle2.place_forget()
 
     def resource_path(self, relative_path):
-        """Get absolute path to resource, works for dev and for PyInstaller"""
+        """
+        Get the absolute path to a resource file.
+
+        Args:
+            relative_path (str): Relative path to the resource.
+
+        Returns:
+            str: Absolute path to the resource.
+        """
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
             base_path = sys._MEIPASS
@@ -695,6 +725,16 @@ class ScoreBoard:
         return os.path.join(base_path, relative_path)
 
     def adjust_widget_size(self, base_size, base_resolution=(1920, 1080)):
+        """
+        Adjust widget size based on screen resolution.
+
+        Args:
+            base_size (int): Base size of the widget.
+            base_resolution (tuple): Base resolution for scaling.
+
+        Returns:
+            int: Adjusted size.
+        """
         width_scale = self.screen_width / base_resolution[0]
         height_scale = self.screen_height / base_resolution[1]
 
@@ -742,7 +782,20 @@ class ScoreBoard:
 
 
 class ControlPanel(tk.Toplevel):
+    """
+    Control panel class for managing user interactions and scoreboard updates.
+    """
+
     def __init__(self, master, scoreboard, monitor, timer):
+        """
+        Initialize the control panel with UI components and event bindings.
+
+        Args:
+            master (tk.Tk): Root window.
+            scoreboard (ViewPanel): The scoreboard view panel.
+            monitor (screeninfo.Monitor): Monitor information for positioning.
+            timer (Timer): Timer object for managing countdowns.
+        """
         super().__init__(master)
         self.scoreboard = scoreboard
         self.monitor = monitor
@@ -858,8 +911,16 @@ class ControlPanel(tk.Toplevel):
         
         self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)   
         
-    # 아이템을 추가할 때 태그를 적용하는 메서드
     def add_log_item(self, treeview, time, image=None, text=None):
+        """
+        Add a log item to the specified Treeview widget.
+
+        Args:
+            treeview (ttk.Treeview): The Treeview widget to update.
+            time (str): The time of the event.
+            image (ImageTk.PhotoImage, optional): Image to display in the log.
+            text (str, optional): Text to display in the log.
+        """
         item_count = len(treeview.get_children())
         tag = 'odd_row' if item_count % 2 == 0 else 'even_row'
         
@@ -874,7 +935,9 @@ class ControlPanel(tk.Toplevel):
         treeview.insert("", tk.END, values=("",), tags=(tag,))
             
     def balance_log_views(self):
-        '''양쪽 log view 높이 맞추기'''
+        """
+        Ensure the log views for both teams have the same number of rows.
+        """
         red_count = len(self.red_log_view.get_children())
         blue_count = len(self.blue_log_view.get_children())
         
@@ -887,15 +950,18 @@ class ControlPanel(tk.Toplevel):
             self._add_empty_item(self.blue_log_view)
             
     def add_round_row(self):
+        """
+        Add a new round row to the log views.
+        """
         self.balance_log_views()
         
         self.red_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
         self.blue_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
     
     def init_menu(self):
-        '''
-        상단 메뉴
-        '''
+        """
+        Initialize the top menu bar with help options.
+        """
         menubar = tk.Menu(self)
         
         helpmenu = tk.Menu(menubar, tearoff=0)
@@ -909,11 +975,9 @@ class ControlPanel(tk.Toplevel):
         self.help_dialog = None
         
     def help_dialog(self):
-        '''
-        탭 윈도우
-        탭1 제작 및 배포 - 전북합기도 이미지
-        탭2 단축키 - 단축키 리스트
-        '''
+        """
+        Display a help dialog with program information and shortcuts.
+        """
         
         # Check if a help_dialog instance already exists
         if self.help_dialog is not None and self.help_dialog.winfo_exists():
@@ -973,9 +1037,12 @@ class ControlPanel(tk.Toplevel):
         notebook.pack(fill=tk.BOTH, expand=True)
                 
     def center_window(self, window):
-        '''
-        help dialog 화면 가운데 위치
-        '''
+        """
+        Center the specified window on the screen.
+
+        Args:
+            window (tk.Toplevel): The window to center.
+        """
         # Get screen width and height
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -1018,6 +1085,9 @@ class ControlPanel(tk.Toplevel):
         self.scoreboard.widgets.weight_entry.insert(0, self.widgets.weight_entry.get())
 
     def on_close(self):
+        """
+        Handle the close event for the control panel.
+        """
         # Close both the control panel and the view panel
         self.destroy()
         self.scoreboard.destroy()
@@ -1026,6 +1096,9 @@ class ControlPanel(tk.Toplevel):
         self.master.quit()
 
     def update_red_score(self):
+        """
+        Update the red team's score and log the event.
+        """
         self.scoreboard.widgets.red_increase()
         self.widgets.red_increase()
         self.add_log_item(self.red_log_view, self.timer.get_time_remaining(),text="+1")
@@ -1041,6 +1114,9 @@ class ControlPanel(tk.Toplevel):
         self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), image=self.widgets.log_yellow_circle_photo)
 
     def update_blue_score(self):
+        """
+        Update the blue team's score and log the event.
+        """
         self.scoreboard.widgets.blue_increase()
         self.widgets.blue_increase()
         self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), text="+1")
@@ -1174,6 +1250,9 @@ class ControlPanel(tk.Toplevel):
         self.widgets.save_warning_widgets()
 
     def start_timer(self):
+        """
+        Start or stop the timer and update the UI accordingly.
+        """
         if self.timer.start_timer_seconds > 0:
             if not self.timer.timer_running:
                 self.timer.start(True)
@@ -1238,6 +1317,9 @@ class ControlPanel(tk.Toplevel):
                 # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
 
     def save_screenshot(self):
+        """
+        Save a screenshot of the current scoreboard view.
+        """
         """현재 폴더에 스크린샷을 저장한다.
         1. 파일 이름 : title_entry.get() + '_' + weight_entry.get() + '_' + round_entry.get() +
                        '_' + red_name_entry.get() + '_' + red_label.get() + '_' + blue_name_entry.get() + '_' + blue_label.get() + '.png'
@@ -1306,7 +1388,19 @@ class ControlPanel(tk.Toplevel):
 
 
 class ViewPanel(tk.Toplevel):
+    """
+    View panel class for displaying the scoreboard to the audience.
+    """
+
     def __init__(self, master, monitor, timer):
+        """
+        Initialize the view panel with UI components.
+
+        Args:
+            master (tk.Tk): Root window.
+            monitor (screeninfo.Monitor): Monitor information for positioning.
+            timer (Timer): Timer object for managing countdowns.
+        """
         super().__init__(master)
 
         self.title("스코어보드")
@@ -1363,6 +1457,9 @@ class ViewPanel(tk.Toplevel):
         )
 
     def start_timer(self):
+        """
+        Start the timer countdown in the view panel.
+        """
         if self.timer.start_timer_seconds > 0:
             self.focus()
 
@@ -1372,6 +1469,9 @@ class ViewPanel(tk.Toplevel):
             self.widgets.update_timer()
 
     def reset_timer(self):
+        """
+        Reset the timer and scores in the view panel.
+        """
         self.widgets.update_timer()
 
         # Reset scores
