@@ -8,7 +8,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkfont
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, UnidentifiedImageError
 import screeninfo
 from timer import Timer
 
@@ -16,46 +16,76 @@ import win32gui
 import win32ui
 import win32con
 
+SOUND_ENABLED = True  # Set to True if pygame is installed and you have a sound file
+TIME_UP_SOUND_FILE = "end_sound.mp3"  # Replace with your sound file path
+
+# Attempt to initialize pygame mixer for sound
+if SOUND_ENABLED:
+    try:
+        import pygame
+
+        pygame.mixer.init()
+        if os.path.exists(TIME_UP_SOUND_FILE):
+            time_up_sound = pygame.mixer.Sound(TIME_UP_SOUND_FILE)
+        else:
+            print(
+                f"Warning: Sound file '{TIME_UP_SOUND_FILE}' not found. Sound disabled.",
+                file=sys.stderr,
+            )
+            SOUND_ENABLED = False
+            time_up_sound = None
+    except ImportError:
+        print(
+            "Warning: Pygame not installed. Sound disabled. Install using: pip install pygame",
+            file=sys.stderr,
+        )
+        SOUND_ENABLED = False
+        time_up_sound = None
+    except Exception as e:
+        print(f"Warning: Could not initialize sound. Error: {e}", file=sys.stderr)
+        SOUND_ENABLED = False
+        time_up_sound = None
+else:
+    time_up_sound = None
+
 
 class ScoreBoard:
-    """
-    Main scoreboard class for managing UI components and game logic.
-    """
-
-    def __init__(self, parent, screen_width, screen_height, timer):
-        """
-        Initialize the scoreboard with UI components and default values.
-
-        Args:
-            parent (tk.Tk or tk.Toplevel): Parent window for the scoreboard.
-            screen_width (int): Width of the screen.
-            screen_height (int): Height of the screen.
-            timer (Timer): Timer object for managing countdowns.
-        """
+    def __init__(self, parent, screen_width, screen_height, timer, timer_rest):
         self.parent = parent
+        self.parent.configure(bg="gray100")
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.timer = timer
+        self.timer_rest = timer_rest
 
         self.round = 1
         self.red_score = 0
         self.blue_score = 0
-        self.str_font = "굴림"  # Windows Basic 한글 Font
+        # self.str_font = "굴림"  # Windows Basic 한글 Font
+        self.str_font = "Arial"  # Windows Basic 한글 Font
         self.str_number_font = "Arial"  # 숫자 폰트
 
         # Const
         self.title_font_size = 80
         self.score_label_font_size = 350
-        self.warning_font_size = 40
+        self.warning_font_size = 60
         self.name_font_size = 60
         self.weight_font_size = 43
         self.timer_1_10_button_font_size = 13
         self.plus_minus_button_font_size = 60
         self.timer_button_font_size = 45
-        self.reset_timer_button_font_size = 15
+        self.btn_timer_reset_font_size = 15
         self.timer_label_width_size = 540
         self.timer_label_height_size = 175
         self.timer_label_font_size = 100
+        self.control_btn_frame_width = 160
+        self.control_btn_frame_height = 120
+        self.start_timer_btn_width = 320
+        self.start_timer_btn_height = 100
+        self.util_icon_btn_size = 30
+        self.util_icon_btn_frame_size = 50
+        self.is_rest = False
+        self.timer_canvas_rely = 0.532
 
         self.title_font = (
             self.str_font,
@@ -65,42 +95,74 @@ class ScoreBoard:
         self.score_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.score_label_font_size),
+            "bold",
         )
         self.warning_font = (
             self.str_font,
             self.adjust_widget_size(self.warning_font_size),
+            "bold",
         )
-        self.name_font = (self.str_font, self.adjust_widget_size(self.name_font_size))
+        self.name_font = (
+            self.str_font,
+            self.adjust_widget_size(self.name_font_size),
+            "bold",
+        )
         self.weight_font = (
             self.str_font,
             self.adjust_widget_size(self.weight_font_size),
+            "bold",
         )
         self.timer_1_10_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_1_10_button_font_size),
+            "bold",
         )
         self.plus_minus_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.plus_minus_button_font_size),
+            "bold",
         )
         self.timer_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_button_font_size),
+            "bold",
         )
-        self.reset_timer_button_font = (
+        self.btn_timer_reset_font = (
             self.str_number_font,
-            self.adjust_widget_size(self.reset_timer_button_font_size),
+            self.adjust_widget_size(self.btn_timer_reset_font_size),
+            "bold",
         )
         self.timer_label_width = self.adjust_widget_size(self.timer_label_width_size)
         self.timer_label_height = self.adjust_widget_size(self.timer_label_height_size)
         self.timer_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_label_font_size),
+            "bold",
         )
+        self.control_btn_frame_width = self.adjust_widget_size(
+            self.control_btn_frame_width
+        )
+        self.control_btn_frame_height = self.adjust_widget_size(
+            self.control_btn_frame_height
+        )
+        self.start_timer_btn_width = self.adjust_widget_size(self.start_timer_btn_width)
+        self.start_timer_btn_height = self.adjust_widget_size(
+            self.start_timer_btn_height
+        )
+        self.util_icon_btn_size = self.adjust_widget_size(self.util_icon_btn_size)
 
-        pygame.mixer.init()
-        pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
+        # Warning circles
+        self.load_images()
+        self.load_utility_images()
+        self.create_widgets()
 
+        # Hide 휴식 타이머
+        self.toggle_rest_mode()
+
+        # resize windows event bind
+        self.parent.bind("<Configure>", self.on_resize)
+
+    def create_widgets(self):
         # Title text input
         self.title_entry = tk.Entry(
             self.parent,
@@ -113,6 +175,7 @@ class ScoreBoard:
         self.title_entry.place(
             relx=0.5, rely=0.06, anchor="center", relwidth=1.0, relheight=0.13
         )
+
         # Set initial text
         initial_text = "합기도대회"
         self.title_entry.insert(0, initial_text)
@@ -121,26 +184,14 @@ class ScoreBoard:
         self.red_panel = tk.Frame(self.parent, bg="red")
         self.red_panel.place(relx=0, rely=0.12, relwidth=0.5, relheight=0.7)
 
-        self.red_label = tk.Label(
+        self.red_score_label = tk.Label(
             self.red_panel,
             text="{}".format(self.red_score),
             fg="white",
             bg="red",
             font=self.score_label_font,
         )
-        self.red_label.place(relx=0.5, rely=0.4, anchor="center")
-
-        # Warning buttons
-        self.red_warning_button = tk.Button(
-            self.parent,
-            text="경고",
-            command=self.red_warning,
-            font=self.warning_font,
-        )
-        self.red_warning_button.place(relx=0.05, rely=0.9, anchor="center")
-
-        # Warning circles
-        self.load_images()
+        self.red_score_label.place(relx=0.5, rely=0.4, anchor="center")
 
         self.red_warning_box = tk.Frame(self.red_panel, bg="black")
         self.red_warning_box.place(
@@ -148,12 +199,24 @@ class ScoreBoard:
         )
 
         self.red_yellow_circle = tk.Label(self.red_warning_box, bg="black")
+        self.red_red_circle = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle.config(image=self.yellow_circle_photo)
+        self.red_red_circle.config(image=self.red_circle_photo)
         self.red_yellow_circle.place(relx=0.15, rely=0.5, anchor="center")
+        self.red_red_circle.place(relx=0.15, rely=0.5, anchor="center")
 
         self.red_red_circle1 = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle1 = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle1.config(image=self.yellow_circle_photo)
+        self.red_red_circle1.config(image=self.red_circle_photo)
+        self.red_yellow_circle1.place(relx=0.5, rely=0.5, anchor="center")
         self.red_red_circle1.place(relx=0.5, rely=0.5, anchor="center")
 
         self.red_red_circle2 = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle2 = tk.Label(self.red_warning_box, bg="black")
+        self.red_yellow_circle2.config(image=self.yellow_circle_photo)
+        self.red_red_circle2.config(image=self.red_circle_photo)
+        self.red_yellow_circle2.place(relx=0.85, rely=0.5, anchor="center")
         self.red_red_circle2.place(relx=0.85, rely=0.5, anchor="center")
 
         # Warning state
@@ -181,23 +244,14 @@ class ScoreBoard:
         self.blue_panel = tk.Frame(self.parent, bg="blue")
         self.blue_panel.place(relx=0.5, rely=0.12, relwidth=0.5, relheight=0.7)
 
-        self.blue_label = tk.Label(
+        self.blue_score_label = tk.Label(
             self.blue_panel,
             text="{}".format(self.blue_score),
             fg="white",
             bg="blue",
             font=self.score_label_font,
         )
-        self.blue_label.place(relx=0.5, rely=0.4, anchor="center")
-
-        # Warning buttons
-        self.blue_warning_button = tk.Button(
-            self.parent,
-            text="경고",
-            command=self.blue_warning,
-            font=self.warning_font,
-        )
-        self.blue_warning_button.place(relx=0.95, rely=0.9, anchor="center")
+        self.blue_score_label.place(relx=0.5, rely=0.4, anchor="center")
 
         # Warning circles
         self.blue_warning_box = tk.Frame(self.blue_panel, bg="black")
@@ -206,12 +260,24 @@ class ScoreBoard:
         )
 
         self.blue_yellow_circle = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_red_circle = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_yellow_circle.config(image=self.yellow_circle_photo)
+        self.blue_red_circle.config(image=self.red_circle_photo)
         self.blue_yellow_circle.place(relx=0.15, rely=0.5, anchor="center")
+        self.blue_red_circle.place(relx=0.15, rely=0.5, anchor="center")
 
+        self.blue_yellow_circle1 = tk.Label(self.blue_warning_box, bg="black")
         self.blue_red_circle1 = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_yellow_circle1.config(image=self.yellow_circle_photo)
+        self.blue_red_circle1.config(image=self.red_circle_photo)
+        self.blue_yellow_circle1.place(relx=0.5, rely=0.5, anchor="center")
         self.blue_red_circle1.place(relx=0.5, rely=0.5, anchor="center")
 
+        self.blue_yellow_circle2 = tk.Label(self.blue_warning_box, bg="black")
         self.blue_red_circle2 = tk.Label(self.blue_warning_box, bg="black")
+        self.blue_yellow_circle2.config(image=self.yellow_circle_photo)
+        self.blue_red_circle2.config(image=self.red_circle_photo)
+        self.blue_yellow_circle2.place(relx=0.85, rely=0.5, anchor="center")
         self.blue_red_circle2.place(relx=0.85, rely=0.5, anchor="center")
 
         # Warning state
@@ -234,106 +300,329 @@ class ScoreBoard:
         initial_blue_name_text = "청길동"
         self.blue_name_entry.insert(0, initial_blue_name_text)
 
+        # 경기 타이머
         self.init_timer_label()
+
+        # 휴식 타이머
+        self.init_timer_rest_label()
+
+        # 체급
         self.init_weight_entry()
 
-        self.decrease_timer_button = tk.Button(
-            self.parent,
+        self.control_frame = tk.Frame(
+            self.parent, bg="gray20", pady=5, padx=10
+        )  # Dark background
+        self.control_frame.place(
+            relx=0.5, rely=0.915, anchor="center", relwidth=1.0, relheight=0.19
+        )
+
+        # --- Configure grid with 5 columns inside control_frame ---
+        # Column 0: Blue controls (fixed width)
+        # Column 1: Empty expanding space
+        # Column 2: Timer controls (fixed width)
+        # Column 3: Empty expanding space
+        # Column 4: Red controls (fixed width)
+        self.control_frame.grid_columnconfigure(0, weight=0)
+        self.control_frame.grid_columnconfigure(1, weight=1)  # Expanding space
+        self.control_frame.grid_columnconfigure(2, weight=0)
+        self.control_frame.grid_columnconfigure(3, weight=1)  # Expanding space
+        self.control_frame.grid_columnconfigure(4, weight=0)
+        self.control_frame.grid_rowconfigure(0, weight=1)
+
+        # Blue controls
+        self.blue_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        self.blue_control_frame.grid(
+            row=0, column=0, sticky="ns"
+        )  # Use grid, sticky stretches horizontally
+        # Inner frame to hold the blue buttons, centered within blue_control_frame
+        self.blue_buttons_inner_frame = tk.Frame(self.blue_control_frame, bg="gray20")
+        # Pack the inner frame so it stays centered
+        self.blue_buttons_inner_frame.pack(
+            anchor="e", expand=True
+        )  # expand=True helps centering
+
+        # Helper function to create buttons within fixed-size frames
+        def create_framed_button(parent, command, text, btn_font, bg_color, fg_color):
+            frame = tk.Frame(
+                parent,
+                width=self.control_btn_frame_width,
+                height=self.control_btn_frame_height,
+                bg=parent.cget("bg"),
+            )
+            frame.pack_propagate(False)  # Prevent frame from shrinking to button size
+            frame.pack(side=tk.LEFT, padx=4, pady=5)  # Pack the frame
+
+            button = tk.Button(
+                frame,
+                text=text,
+                command=command,
+                font=btn_font,
+                bg=bg_color,
+                fg=fg_color,
+                bd=1,  # Optional: border
+                relief=tk.RAISED,  # Optional: border style
+                # width/height options removed from button - frame controls size
+            )
+            # Pack button to fill the frame
+            button.pack(fill=tk.BOTH, expand=True)
+            return frame, button  # Return both if needed
+
+        # Create Blue buttons using the helper
+        _, self.blue_warning_button = create_framed_button(
+            self.blue_buttons_inner_frame,
+            self.blue_warning,
+            "경고",
+            self.warning_font,
+            "#facc15",
+            "black",
+        )
+        _, self.btn_blue_plus = create_framed_button(
+            self.blue_buttons_inner_frame,
+            self.blue_increase,
+            "+1",
+            self.plus_minus_button_font,
+            "#2563eb",
+            "white",
+        )
+        _, self.btn_blue_minus = create_framed_button(
+            self.blue_buttons_inner_frame,
+            self.blue_decrease,
+            "-1",
+            self.plus_minus_button_font,
+            "#1e40af",
+            "white",
+        )
+
+        # Timer controls
+        self.timer_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        # Place timer controls in the center column (1) of the grid
+        self.timer_control_frame.grid(row=0, column=2, padx=10)
+        self.timer_adj_minus_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        self.btn_timer_minus_1 = tk.Button(
+            self.timer_adj_minus_frame,
             text="-1",
-            command=lambda: self.decrease_timer(100),
+            command=lambda: self.update_timer(),
             font=self.timer_1_10_button_font,
+            bg="gray50",
+            fg="white",
+            width=4,
         )
-        self.decrease_timer_button.place(relx=0.362, rely=0.842, anchor="center")
-
-        self.increase_timer_button = tk.Button(
-            self.parent,
-            text="+1",
-            command=lambda: self.increase_timer(100),
-            font=self.timer_1_10_button_font,
-        )
-        self.increase_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-
-        self.decrease_timer10_button = tk.Button(
-            self.parent,
+        self.btn_timer_minus_10 = tk.Button(
+            self.timer_adj_minus_frame,
             text="-10",
-            command=lambda: self.decrease_timer(1000),
+            command=lambda: self.update_timer(),
             font=self.timer_1_10_button_font,
+            bg="gray50",
+            fg="white",
+            width=4,
         )
-        self.decrease_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
+        self.btn_timer_minus_10.pack(pady=1)
+        self.btn_timer_minus_1.pack(pady=1)
 
-        self.increase_timer10_button = tk.Button(
-            self.parent,
-            text="+10",
-            command=lambda: self.increase_timer(1000),
-            font=self.timer_1_10_button_font,
-        )
-        self.increase_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
-
+        # utility buttons
+        # |-------------------|
+        # |  btn_start_timer  |
+        # |-------------------|
+        # | rest|capture|reset|
+        # |-------------------|
         # Capture button
-        self.capture_button = tk.Button(
-            self.parent,
-            text="Capture",
-            font=self.reset_timer_button_font,
+        self.timer_util_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        # Configure grid inside utility frame
+        self.timer_util_frame.grid_columnconfigure(
+            (0, 1, 2), weight=1, uniform="util_buttons"
+        )  # uniform makes columns equal width
+        self.timer_util_frame.grid_rowconfigure(0, weight=0)  # Start button row
+        self.timer_util_frame.grid_rowconfigure(1, weight=0)  # Icon buttons row
+        self.timer_util_frame.grid_rowconfigure(
+            1, minsize=self.util_icon_btn_frame_size + 2
         )
-        self.capture_button.place(relx=0.630, rely=0.882, anchor="center")
 
-        # Buttons
-        self.red_button = tk.Button(
-            self.parent,
-            text="+1",
-            command=self.red_increase,
-            font=self.plus_minus_button_font,
-            fg="red",
+        # Helper function specifically for utility buttons in frames
+        def create_util_button_in_frame(
+            parent_grid,
+            row,
+            col,
+            command,
+            image_photo,
+            bg_color,
+            frame_width,
+            frame_height,
+            colspan=1,
+        ):
+            # Frame to control the size, placed in the grid
+            frame = tk.Frame(
+                parent_grid,
+                width=frame_width,
+                height=frame_height,
+                bg="gray20",
+            )
+            frame.pack_propagate(False)
+            frame.grid(
+                row=row, column=col, columnspan=colspan, sticky="nsew", padx=1, pady=1
+            )
+
+            # Button inside the frame
+            button = tk.Button(
+                frame,
+                image=image_photo,
+                command=command,
+                bg="gray35",
+                bd=0,
+                relief=tk.FLAT,
+                activebackground="gray20",
+            )
+            # Assign fallback text/color if image failed to load
+            if image_photo is None:
+                # Simple fallback text
+                fallback_text = "?"
+                if command == self.rest_timer:
+                    fallback_text = "P"
+                elif command == self.reset_timer:
+                    fallback_text = "R"
+                # elif command == self.capture_action: fallback_text = "C" # If capture had command
+                button.config(
+                    text=fallback_text,
+                    font=self.timer_1_10_button_font,
+                    fg="white",
+                    relief=tk.RAISED,
+                    bd=1,
+                )
+
+            button.pack(fill=tk.BOTH, expand=True)
+            return frame, button
+
+        # Create Start timer button (still text) - using its own frame for size control
+        start_frame = tk.Frame(
+            self.timer_util_frame,
+            width=self.start_timer_btn_width,
+            height=self.start_timer_btn_height,
+            bg=self.timer_util_frame.cget("bg"),
         )
-        self.red_button.place(relx=0.18, rely=0.9, anchor="center")
-
-        self.red_button_minus = tk.Button(
-            self.parent,
-            text="-1",
-            command=self.red_decrease,
-            font=self.plus_minus_button_font,
-            fg="red",
+        start_frame.pack_propagate(False)
+        start_frame.grid(
+            row=0, column=0, columnspan=3, sticky="nsew", padx=1, pady=(0, 2)
         )
-        self.red_button_minus.place(relx=0.29, rely=0.9, anchor="center")
-
-        self.blue_button = tk.Button(
-            self.parent,
-            text="+1",
-            command=self.blue_increase,
-            font=self.plus_minus_button_font,
-            fg="blue",
-        )
-        self.blue_button.place(relx=0.72, rely=0.9, anchor="center")
-
-        self.blue_button_minus = tk.Button(
-            self.parent,
-            text="-1",
-            command=self.blue_decrease,
-            font=self.plus_minus_button_font,
-            fg="blue",
-        )
-        self.blue_button_minus.place(relx=0.827, rely=0.9, anchor="center")
-
-        # Start timer button
-        self.start_timer_button = tk.Button(
-            self.parent,
-            text="Start Timer",
-            # command=self.start_timer,
+        self.btn_start_timer = tk.Button(
+            start_frame,
+            text="시작",
             font=self.timer_button_font,
+            bg="#16a34a",
+            fg="white",
+            bd=1,
+            relief=tk.RAISED,
         )
-        self.start_timer_button.place(relx=0.5, rely=0.88, anchor="center")
+        self.btn_start_timer.pack(fill=tk.BOTH, expand=True)
 
-        # Reset timer button
-        self.reset_timer_button = tk.Button(
-            self.parent,
-            text="Reset",
-            command=self.reset_timer,
-            font=self.reset_timer_button_font,
+        self.btn_start_timer_rest = tk.Button(
+            start_frame,
+            text="휴식",
+            font=self.timer_button_font,
+            bg="#16a34a",
+            fg="white",
+            bd=1,
+            relief=tk.RAISED,
         )
-        self.reset_timer_button.place(relx=0.5, rely=0.96, anchor="center")
+        self.btn_start_timer_rest.pack(fill=tk.BOTH, expand=True)
 
-        # resize windows event bind
-        self.parent.bind("<Configure>", self.on_resize)
+        # Create Icon utility buttons using the helper
+        self.btn_timer_rest_frame, self.btn_timer_rest = create_util_button_in_frame(
+            self.timer_util_frame,
+            1,
+            0,
+            None,
+            self.pause_icon_photo,
+            "#9333ea",
+            self.util_icon_btn_frame_size,
+            self.util_icon_btn_frame_size,
+        )
+        self.btn_capture_frame, self.btn_capture = create_util_button_in_frame(
+            self.timer_util_frame,
+            1,
+            1,
+            None,
+            self.camera_icon_photo,
+            "#9333ea",
+            self.util_icon_btn_frame_size,
+            self.util_icon_btn_frame_size,
+        )
+        self.btn_timer_reset_frame, self.btn_timer_reset = create_util_button_in_frame(
+            self.timer_util_frame,
+            1,
+            2,
+            self.reset_timer,
+            self.reset_icon_photo,
+            "#9333ea",
+            self.util_icon_btn_frame_size,
+            self.util_icon_btn_frame_size,
+        )
+
+        # Timer adjust plus frame
+        self.timer_adj_plus_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        self.btn_timer_plus_1 = tk.Button(
+            self.timer_adj_plus_frame,
+            text="+1",
+            command=lambda: self.update_timer(),
+            font=self.timer_1_10_button_font,
+            bg="gray50",
+            fg="white",
+            width=4,
+        )
+        self.btn_timer_plus_10 = tk.Button(
+            self.timer_adj_plus_frame,
+            text="+10",
+            command=lambda: self.update_timer(),
+            font=self.timer_1_10_button_font,
+            bg="gray50",
+            fg="white",
+            width=4,
+        )
+        # Pack order reversed for visual layout (+1 on top)
+        self.btn_timer_plus_10.pack(pady=1)
+        self.btn_timer_plus_1.pack(pady=1)
+
+        # Pack the timer control sub-frames (using pack is fine here)
+        self.timer_adj_minus_frame.pack(side=tk.LEFT, padx=5, fill="y", anchor="w")
+        self.timer_util_frame.pack(
+            side=tk.LEFT, padx=5, fill="both", expand=True
+        )  # Allow util frame to expand
+        self.timer_adj_plus_frame.pack(side=tk.LEFT, padx=5, fill="y", anchor="e")
+
+        # Red controls
+        self.red_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        self.red_control_frame.grid(
+            row=0, column=4, sticky="ns"
+        )  # Sticky fills the cell
+
+        # Inner frame to hold the red buttons, centered within red_control_frame
+        self.red_buttons_inner_frame = tk.Frame(self.red_control_frame, bg="gray20")
+        # Pack the inner frame so it stays centered
+        self.red_buttons_inner_frame.pack(anchor="w", expand=True)
+
+        # Create Red buttons inside the red_buttons_inner_frame
+        _, self.btn_red_plus = create_framed_button(
+            self.red_buttons_inner_frame,
+            self.red_increase,
+            "+1",
+            self.plus_minus_button_font,
+            "#dc2626",
+            "white",
+        )
+        _, self.btn_red_minus = create_framed_button(
+            self.red_buttons_inner_frame,
+            self.red_decrease,
+            "-1",
+            self.plus_minus_button_font,
+            "#b91c1c",
+            "white",
+        )
+        _, self.red_warning_button = create_framed_button(
+            self.red_buttons_inner_frame,
+            self.red_warning,
+            "경고",
+            self.warning_font,
+            "#facc15",
+            "black",
+        )
 
     def on_resize(self, event):
         """
@@ -352,64 +641,98 @@ class ScoreBoard:
         self.score_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.score_label_font_size),
+            "bold",
         )
         self.warning_font = (
             self.str_font,
             self.adjust_widget_size(self.warning_font_size),
+            "bold",
         )
-        self.name_font = (self.str_font, self.adjust_widget_size(self.name_font_size))
+        self.name_font = (
+            self.str_font,
+            self.adjust_widget_size(self.name_font_size),
+            "bold",
+        )
         self.weight_font = (
             self.str_font,
             self.adjust_widget_size(self.weight_font_size),
+            "bold",
         )
         self.timer_1_10_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_1_10_button_font_size),
+            "bold",
         )
         self.plus_minus_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.plus_minus_button_font_size),
+            "bold",
         )
         self.timer_button_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_button_font_size),
+            "bold",
         )
-        self.reset_timer_button_font = (
+        self.btn_timer_reset_font = (
             self.str_number_font,
-            self.adjust_widget_size(self.reset_timer_button_font_size),
+            self.adjust_widget_size(self.btn_timer_reset_font_size),
+            "bold",
         )
         self.timer_label_width = self.adjust_widget_size(self.timer_label_width_size)
         self.timer_label_height = self.adjust_widget_size(self.timer_label_height_size)
         self.timer_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_label_font_size),
+            "bold",
         )
+        self.control_btn_frame_width = self.adjust_widget_size(
+            self.control_btn_frame_width
+        )
+        self.control_btn_frame_height = self.adjust_widget_size(
+            self.control_btn_frame_height
+        )
+        self.start_timer_btn_width = self.adjust_widget_size(self.start_timer_btn_width)
+        self.start_timer_btn_height = self.adjust_widget_size(
+            self.start_timer_btn_height
+        )
+        self.util_icon_btn_size = self.adjust_widget_size(self.util_icon_btn_size)
 
         self.title_entry.config(font=self.title_font)
-        self.red_label.config(font=self.score_label_font)
-        self.blue_label.config(font=self.score_label_font)
+        self.red_score_label.config(font=self.score_label_font)
+        self.blue_score_label.config(font=self.score_label_font)
         self.red_warning_button.config(font=self.warning_font)
         self.blue_warning_button.config(font=self.warning_font)
         self.red_name_entry.config(font=self.name_font)
         self.blue_name_entry.config(font=self.name_font)
         self.weight_entry.config(font=self.weight_font)
-        self.increase_timer_button.config(font=self.timer_1_10_button_font)
-        self.decrease_timer_button.config(font=self.timer_1_10_button_font)
-        self.increase_timer10_button.config(font=self.timer_1_10_button_font)
-        self.decrease_timer10_button.config(font=self.timer_1_10_button_font)
-        self.capture_button.config(font=self.reset_timer_button_font)
-        self.red_button.config(font=self.plus_minus_button_font)
-        self.red_button_minus.config(font=self.plus_minus_button_font)
-        self.blue_button.config(font=self.plus_minus_button_font)
-        self.blue_button_minus.config(font=self.plus_minus_button_font)
-        self.start_timer_button.config(font=self.timer_button_font)
-        self.reset_timer_button.config(font=self.reset_timer_button_font)
+        self.btn_timer_plus_1.config(font=self.timer_1_10_button_font)
+        self.btn_timer_minus_1.config(font=self.timer_1_10_button_font)
+        self.btn_timer_plus_10.config(font=self.timer_1_10_button_font)
+        self.btn_timer_minus_10.config(font=self.timer_1_10_button_font)
+        self.btn_capture.config(font=self.btn_timer_reset_font)
+        self.btn_red_plus.config(font=self.plus_minus_button_font)
+        self.btn_red_minus.config(font=self.plus_minus_button_font)
+        self.btn_blue_plus.config(font=self.plus_minus_button_font)
+        self.btn_blue_minus.config(font=self.plus_minus_button_font)
+        self.btn_start_timer.config(font=self.timer_button_font)
+        self.btn_timer_reset.config(font=self.btn_timer_reset_font)
 
+        # 메인 타이머
         self.timer_canvas.config(
             width=self.timer_label_width, height=self.timer_label_height
         )
         self.timer_label.config(font=self.timer_label_font)
         self.timer_label.place(
+            x=(self.timer_label_width // 2),
+            y=(self.timer_label_height // 2),
+            anchor="center",
+        )
+        # 휴식 타이머
+        self.timer_canvas_rest.config(
+            width=self.timer_label_width, height=self.timer_label_height
+        )
+        self.timer_label_rest.config(font=self.timer_label_font)
+        self.timer_label_rest.place(
             x=(self.timer_label_width // 2),
             y=(self.timer_label_height // 2),
             anchor="center",
@@ -428,15 +751,13 @@ class ScoreBoard:
             width=self.timer_label_width,
             height=self.timer_label_height,
             bg="white",
-            bd=2,
+            bd=0,
             relief="solid",
             highlightthickness=2,
             highlightbackground="yellow",
             highlightcolor="yellow",
         )
-        # view panel timer 위치
-        # self.timer_canvas.place(relx=0.5, rely=0.73, anchor="center")
-        self.timer_canvas.place(relx=0.5, rely=0.532, anchor="center")
+        self.timer_canvas.place(relx=0.5, rely=self.timer_canvas_rely, anchor="center")
 
         self.timer_label = tk.Label(
             self.timer_canvas,
@@ -450,52 +771,43 @@ class ScoreBoard:
             anchor="center",
         )
 
-# def adjust_font_size(self):
-    #     """weight_entry 폰트의 사이즈를 text overflow 하지 않게 조정한다.
-    #     1. 입력된 글자가 많으면 폰트 사이즈를 크게한다.
-    #     2. 입력된 글자가 적으면 폰트 사이즈를 작게한다
-    #     """
-    #     # Get the current font size
-    #     current_font = tkfont.Font(family=self.weight_font[0], size=self.weight_font[1])
+    def init_timer_rest_label(self):
+        """
+        Initialize the rest timer label widget.
+        """
+        # Timer
+        self.time_rest_remaining = tk.StringVar(self.parent)
+        self.time_rest_remaining.set(timer_rest.get_time_remaining())
 
-    #     # Get the width of the weight_entry widget
-    #     widget_width = self.weight_entry.winfo_width()
+        self.timer_canvas_rest = tk.Canvas(
+            self.parent,
+            width=self.timer_label_width,
+            height=self.timer_label_height,
+            bg="orange",
+            bd=0,
+            relief="solid",
+            highlightthickness=2,
+            highlightbackground="yellow",
+            highlightcolor="yellow",
+        )
+        # 휴식 timer 위치
+        self.timer_canvas_rest.place(
+            relx=0.5,
+            rely=(self.timer_canvas_rely - (self.timer_label_height / 1000)),
+            anchor="center",
+        )
 
-    #     # Get the current text in the weight_entry widget
-    #     current_text = self.text_var.get()
-
-    #     # Calculate the width of the text
-    #     text_width = self.weight_entry.tk.call(
-    #         "font", "measure", current_font, current_text
-    #     )
-
-    #     # While the text is wider than the widget, decrease the font size
-    #     if text_width > widget_width:
-    #         while text_width > widget_width and self.weight_font[1] > 10:
-    #             self.weight_font = (self.weight_font[0], self.weight_font[1] - 1)
-    #             current_font.config(
-    #                 family=self.weight_font[0], size=self.weight_font[1]
-    #             )
-    #             text_width = self.weight_entry.tk.call(
-    #                 "font", "measure", current_font, current_text
-    #             )
-    #     elif text_width < widget_width:
-    #         while text_width < widget_width and self.weight_font[1] < 43:
-    #             self.weight_font = (self.weight_font[0], self.weight_font[1] + 1)
-    #             current_font.config(
-    #                 family=self.weight_font[0], size=self.weight_font[1]
-    #             )
-    #             text_width = self.weight_entry.tk.call(
-    #                 "font", "measure", current_font, current_text
-    #             )
-
-    #         # 항상 widget_width 보다 작게 조정한다.
-    #         if self.weight_font[1] != 43:
-    #             self.weight_font = (self.weight_font[0], self.weight_font[1] - 1)
-
-    #     # Apply the updated font to the weight_entry widget
-    #     self.weight_font_size = self.weight_font[1]
-    #     self.weight_entry.config(font=self.weight_font)
+        self.timer_label_rest = tk.Label(
+            self.timer_canvas_rest,
+            textvariable=self.time_rest_remaining,
+            font=self.timer_label_font,
+            bg="orange",
+        )
+        self.timer_label_rest.place(
+            x=(self.timer_label_width // 2),
+            y=(self.timer_label_height // 2),
+            anchor="center",
+        )
 
     def init_weight_entry(self):
         """
@@ -514,7 +826,7 @@ class ScoreBoard:
         )
 
         self.weight_entry.place(
-            relx=0.5, rely=0.678, anchor="center", relwidth=0.284, relheight=0.12
+            relx=0.5, rely=0.678, anchor="center", relwidth=0.284, relheight=0.118
         )
 
         # Set initial text
@@ -524,98 +836,305 @@ class ScoreBoard:
 
     def load_images(self):
         # Warning circles
-        self.yellow_circle_image = Image.open(self.resource_path("yellow_circle.png"))
-        adjust_image_size = self.adjust_widget_size(80)
-        self.yellow_circle_image = self.yellow_circle_image.resize(
-            (adjust_image_size, adjust_image_size), Image.LANCZOS
-        )
-        self.yellow_circle_photo = ImageTk.PhotoImage(
-            self.yellow_circle_image, master=self.parent
-        )
+        self.yellow_circle_photo = None
+        self.red_circle_photo = None
+        self.resize_logo_image = None
+        self.log_yellow_circle_photo = None
 
-        self.red_circle_image = Image.open(self.resource_path("red_circle.png"))
-        self.red_circle_image = self.red_circle_image.resize(
-            (adjust_image_size, adjust_image_size), Image.LANCZOS
-        )
-        self.red_circle_photo = ImageTk.PhotoImage(
-            self.red_circle_image, master=self.parent
-        )
-        
-        #logo image
-        self.logo_image = Image.open(self.resource_path("logo.jpg"))
-        logo_adjust_image_size = self.adjust_widget_size(480)
-        self.logo_image = self.logo_image.resize(
-            (logo_adjust_image_size, logo_adjust_image_size), Image.LANCZOS
-        )
-        self.resize_logo_image = ImageTk.PhotoImage(
-            self.logo_image, master=self.parent
-        )
-        
-        log_adjust_image_size = self.adjust_widget_size(15)
-        self.log_yellow_circle_image = self.yellow_circle_image.resize(
-            (log_adjust_image_size, log_adjust_image_size), Image.LANCZOS
-        )
-        self.log_yellow_circle_photo = ImageTk.PhotoImage(
-            self.log_yellow_circle_image, master=self.parent
-        )
+        # --- Load Yellow Circle ---
+        try:
+            image_path = self.resource_path("yellow_circle.png")
+            img = Image.open(image_path)
+            adjust_image_size = self.adjust_widget_size(80)
+            img_resized = img.resize(
+                (adjust_image_size, adjust_image_size),
+                Image.Resampling.LANCZOS,  # Use Image.Resampling for newer Pillow versions
+            )
+            self.yellow_circle_photo = ImageTk.PhotoImage(
+                img_resized, master=self.parent
+            )
+
+        except FileNotFoundError:
+            print(f"Error: Image file not found at {image_path}", file=sys.stderr)
+        except UnidentifiedImageError:
+            print(
+                f"Error: Cannot identify image file (corrupted or unsupported format) at {image_path}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading yellow circle image: {e}", file=sys.stderr)
+
+        # --- Load Red Circle ---
+        try:
+            image_path = self.resource_path("red_circle.png")
+            img = Image.open(image_path)
+            # Assuming adjust_image_size is still valid from yellow circle loading
+            adjust_image_size = self.adjust_widget_size(80)  # Recalculate if needed
+            img_resized = img.resize(
+                (adjust_image_size, adjust_image_size), Image.Resampling.LANCZOS
+            )
+            # self.red_circle_image = img_resized # Store if needed
+            self.red_circle_photo = ImageTk.PhotoImage(img_resized, master=self.parent)
+
+        except FileNotFoundError:
+            print(f"Error: Image file not found at {image_path}", file=sys.stderr)
+        except UnidentifiedImageError:
+            print(
+                f"Error: Cannot identify image file (corrupted or unsupported format) at {image_path}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading red circle image: {e}", file=sys.stderr)
+
+        # --- Load Logo Image ---
+        try:
+            image_path = self.resource_path("logo.jpg")
+            img = Image.open(image_path)
+            logo_adjust_image_size = self.adjust_widget_size(480)
+            img_resized = img.resize(
+                (logo_adjust_image_size, logo_adjust_image_size),
+                Image.Resampling.LANCZOS,
+            )
+            # self.logo_image = img_resized # Store if needed
+            self.resize_logo_image = ImageTk.PhotoImage(img_resized, master=self.parent)
+
+        except FileNotFoundError:
+            print(f"Error: Image file not found at {image_path}", file=sys.stderr)
+        except UnidentifiedImageError:
+            print(
+                f"Error: Cannot identify image file (corrupted or unsupported format) at {image_path}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading logo image: {e}", file=sys.stderr)
+
+        # --- Load Log Yellow Circle Image (Smaller version) ---
+        # This depends on the yellow_circle_image being successfully loaded and resized earlier
+        # Let's reload it to be safe, or use the previously loaded one if available
+        try:
+            # Option 1: Reload the original yellow circle image
+            image_path = self.resource_path("yellow_circle.png")
+            img = Image.open(image_path)
+
+            # Option 2: Reuse previously resized image if available (less robust if first load failed)
+            # if self.yellow_circle_photo and hasattr(self.yellow_circle_photo, '_PhotoImage__photo'):
+            #     # Accessing internal might be fragile, better to resize from original PIL if kept
+            #     # Or just reload as in Option 1
+            #     pass # Need a reliable way to get PIL image back or store it
+
+            # Proceeding with Option 1 (Reloading)
+            log_adjust_image_size = self.adjust_widget_size(15)
+            img_log_resized = img.resize(
+                (log_adjust_image_size, log_adjust_image_size), Image.Resampling.LANCZOS
+            )
+            # self.log_yellow_circle_image = img_log_resized # Store if needed
+            self.log_yellow_circle_photo = ImageTk.PhotoImage(
+                img_log_resized, master=self.parent
+            )
+
+        except FileNotFoundError:
+            # This error might occur if the file exists for the first load but not the second (unlikely but possible)
+            print(f"Error: Log image file not found at {image_path}", file=sys.stderr)
+        except UnidentifiedImageError:
+            print(
+                f"Error: Cannot identify log image file (corrupted or unsupported format) at {image_path}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading log yellow circle image: {e}", file=sys.stderr)
+
+    def load_utility_images(self):
+        """Loads and prepares images for utility buttons."""
+        self.pause_icon_photo = None
+        self.camera_icon_photo = None
+        self.reset_icon_photo = None
+        self.log_rest_photo = None
+
+        icon_files = {
+            "pause": "pause_icon.png",  # Replace with your actual filenames
+            "camera": "camera_icon.png",
+            "reset": "reset_icon.png",
+        }
+
+        for key, filename in icon_files.items():
+            try:
+                image_path = self.resource_path(filename)
+                if not os.path.exists(image_path):
+                    raise FileNotFoundError(f"Image file not found at {image_path}")
+
+                img = Image.open(image_path).convert(
+                    "RGBA"
+                )  # Use RGBA for transparency
+                img_resized = img.resize(
+                    (self.util_icon_btn_size, self.util_icon_btn_size),
+                    Image.Resampling.LANCZOS,
+                )
+                photo_image = ImageTk.PhotoImage(img_resized, master=self.parent)
+
+                # Store the PhotoImage object in self
+                if key == "pause":
+                    self.pause_icon_photo = photo_image
+                elif key == "camera":
+                    self.camera_icon_photo = photo_image
+                elif key == "reset":
+                    self.reset_icon_photo = photo_image
+                # print(f"Successfully loaded icon: {filename}")
+
+            except FileNotFoundError as e:
+                print(f"Error: {e}", file=sys.stderr)
+            except UnidentifiedImageError:
+                print(
+                    f"Error: Cannot identify image file (corrupted or unsupported format): {filename}",
+                    file=sys.stderr,
+                )
+            except Exception as e:
+                print(f"Error loading icon '{filename}': {e}", file=sys.stderr)
+
+        try:
+            image_path = self.resource_path("pause_log_icon.png")
+            img = Image.open(image_path).convert("RGBA")
+
+            log_adjust_image_size = self.adjust_widget_size(15)
+            img_log_resized = img.resize(
+                (log_adjust_image_size, log_adjust_image_size), Image.Resampling.LANCZOS
+            )
+            self.log_rest_photo = ImageTk.PhotoImage(
+                img_log_resized, master=self.parent
+            )
+        except FileNotFoundError:
+            print(f"Error: Log image file not found at {image_path}", file=sys.stderr)
+        except UnidentifiedImageError:
+            print(
+                f"Error: Cannot identify log image file (corrupted or unsupported format) at {image_path}",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Error loading log yellow circle image: {e}", file=sys.stderr)
 
     def red_increase(self):
         self.red_score += 1
-        self.red_label.config(text="{}".format(self.red_score))
+        self.red_score_label.config(text="{}".format(self.red_score))
 
     def blue_increase(self):
         self.blue_score += 1
-        self.blue_label.config(text="{}".format(self.blue_score))
+        self.blue_score_label.config(text="{}".format(self.blue_score))
 
     def red_decrease(self):
         self.red_score -= 1
-        self.red_label.config(text="{}".format(self.red_score))
+        self.red_score_label.config(text="{}".format(self.red_score))
 
     def blue_decrease(self):
         self.blue_score -= 1
-        self.blue_label.config(text="{}".format(self.blue_score))
+        self.blue_score_label.config(text="{}".format(self.blue_score))
 
     def update_timer(self):
         self.time_remaining.set(self.timer.get_time_remaining())
         self.timer_label.update_idletasks()  # Update only the timer label widget
 
-    def show_start_timer_button(self, isStart):
+    def update_timer_rest(self):
+        self.time_rest_remaining.set(self.timer_rest.get_time_remaining())
+        self.timer_label_rest.update_idletasks()  # Update only the timer_rest label widget
+
+    def show_btn_start_timer(self, isStart):
         if isStart:
-            self.start_timer_button.config(text="Stop Timer")
+            self.btn_start_timer.config(text="멈춤")
             # Hide Button
-            self.increase_timer_button.place_forget()
-            self.decrease_timer_button.place_forget()
-            self.increase_timer10_button.place_forget()
-            self.decrease_timer10_button.place_forget()
-            self.capture_button.place_forget()
+            self.btn_timer_minus_10.pack_forget()
+            self.btn_timer_minus_1.pack_forget()
+            self.btn_timer_plus_10.pack_forget()
+            self.btn_timer_plus_1.pack_forget()
+            self.btn_timer_rest_frame.grid_remove()
+            self.btn_capture_frame.grid_remove()
+            self.btn_timer_reset_frame.grid_remove()
         else:
-            self.start_timer_button.config(text="Start Timer")
+            self.btn_start_timer.config(text="시작")
             # Show Buttons
             self.show_timer_config_buttons()
 
+    def show_btn_start_timer_rest(self, isStart):
+        if isStart:
+            self.btn_start_timer_rest.config(text="멈춤")
+            # Hide Button
+            self.btn_timer_minus_10.pack_forget()
+            self.btn_timer_minus_1.pack_forget()
+            self.btn_timer_plus_10.pack_forget()
+            self.btn_timer_plus_1.pack_forget()
+            self.btn_timer_rest_frame.grid_remove()
+            self.btn_capture_frame.grid_remove()
+            self.btn_timer_reset_frame.grid_remove()
+        else:
+            self.btn_start_timer_rest.config(text="휴식")
+            # Show Buttons
+            self.show_timer_config_buttons()
+
+    def toggle_rest_mode(self):
+        """
+        Switches between main timer display and rest timer display/controls.
+        """
+        if self.is_rest:
+            self.timer_canvas_rest.place(
+                relx=0.5,
+                rely=(self.timer_canvas_rely - (self.timer_label_height / 1000)),
+                anchor="center",
+            )
+            self.timer_label_rest.place(
+                x=(self.timer_label_width // 2),
+                y=(self.timer_label_height // 2),
+                anchor="center",
+            )
+            self.btn_start_timer.pack_forget()
+            self.btn_start_timer_rest.pack(fill=tk.BOTH, expand=True)
+
+            # 눌림 상태
+            if hasattr(self, "btn_timer_rest"):
+                self.btn_timer_rest.config(
+                    relief=tk.SUNKEN,
+                    bg="gray20",
+                )
+        else:
+            # hide widget
+            self.timer_canvas_rest.place_forget()
+            self.timer_label_rest.place_forget()
+            self.btn_start_timer_rest.pack_forget()
+
+            # show widget
+            self.btn_start_timer.pack(fill=tk.BOTH, expand=True)
+            # 눌림 상태 해제
+            if hasattr(self, "btn_timer_rest"):
+                self.btn_timer_rest.config(
+                    relief=tk.FLAT,
+                    bg="gray35",
+                )
+
     def show_timer_config_buttons(self):
-        self.decrease_timer_button.place(relx=0.362, rely=0.842, anchor="center")
-        self.increase_timer_button.place(relx=0.615, rely=0.842, anchor="center")
-        self.decrease_timer10_button.place(relx=0.385, rely=0.842, anchor="center")
-        self.increase_timer10_button.place(relx=0.642, rely=0.842, anchor="center")
-        self.capture_button.place(relx=0.630, rely=0.882, anchor="center")
+        self.btn_timer_minus_10.pack(pady=1)
+        self.btn_timer_minus_1.pack(pady=1)
+        self.btn_timer_plus_10.pack(pady=1)
+        self.btn_timer_plus_1.pack(pady=1)
+        self.btn_timer_rest_frame.grid(row=1, column=0, sticky="nsew", padx=1, pady=1)
+        self.btn_capture_frame.grid(row=1, column=1, sticky="nsew", padx=1, pady=1)
+        self.btn_timer_reset_frame.grid(row=1, column=2, sticky="nsew", padx=1, pady=1)
 
     def play_sound(self):
         # Play an MP3 file when the timer ends
-        pygame.mixer.music.play()
+        if SOUND_ENABLED and time_up_sound:
+            try:
+                time_up_sound.play()
+            except Exception as e:
+                print(f"Error playing sound: {e}", file=sys.stderr)
 
     def reset_timer(self):
         self.timer.reset()
-        # self.timer_seconds = self.init_time
-        # self.start_timer_seconds = self.init_time
+        self.timer_rest.reset()
         self.update_timer()
+        self.update_timer_rest()
 
         # Reset scores
         self.round = 1
         self.red_score = 0
         self.blue_score = 0
-        self.red_label.config(text="{}".format(self.red_score))
-        self.blue_label.config(text="{}".format(self.blue_score))
+        self.red_score_label.config(text="{}".format(self.red_score))
+        self.blue_score_label.config(text="{}".format(self.blue_score))
         self.red_warning_state = -1
         self.blue_warning_state = -1
 
@@ -626,26 +1145,27 @@ class ScoreBoard:
         # Reset Timer Button
         self.timer.timer_running = False
         self.timer.is_start = False
-        self.start_timer_button.config(text="Start Timer")
+        self.timer_rest.timer_running = False
+        self.timer_rest.is_start = False
+        self.btn_start_timer.config(text="시작")
+        self.btn_start_timer_rest.config(text="휴식")
 
         # Show Buttons
         self.show_timer_config_buttons()
 
-    def increase_timer(self, time):
-        # self.timer.increase_timer(time)
-        self.update_timer()
-
-    def decrease_timer(self, time):
-        # if (self.timer.timer_seconds - time) > 0:
-        #     self.timer.decrease_timer(time)
-        self.update_timer()
-
     def save_warning_widgets(self):
         self.red_yellow_circle_place_info = self.red_yellow_circle.place_info()
+        self.red_red_circle_place_info = self.red_red_circle.place_info()
+        self.red_yellow_circle1_place_info = self.red_yellow_circle1.place_info()
         self.red_red_circle1_place_info = self.red_red_circle1.place_info()
+        self.red_yellow_circle2_place_info = self.red_yellow_circle2.place_info()
         self.red_red_circle2_place_info = self.red_red_circle2.place_info()
+
         self.blue_yellow_circle_place_info = self.blue_yellow_circle.place_info()
+        self.blue_red_circle_place_info = self.blue_red_circle.place_info()
+        self.blue_yellow_circle1_place_info = self.blue_yellow_circle1.place_info()
         self.blue_red_circle1_place_info = self.blue_red_circle1.place_info()
+        self.blue_yellow_circle2_place_info = self.blue_yellow_circle2.place_info()
         self.blue_red_circle2_place_info = self.blue_red_circle2.place_info()
 
     def red_warning(self):
@@ -653,28 +1173,54 @@ class ScoreBoard:
         self.red_warning_state += 1
 
         if self.red_warning_state == 1:
-            self.red_yellow_circle.config(image=self.yellow_circle_photo)
-            self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
+            self.red_red_circle.place_forget()
+            self.red_yellow_circle1.place_forget()
             self.red_red_circle1.place_forget()
+            self.red_yellow_circle2.place_forget()
             self.red_red_circle2.place_forget()
+
+            self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
         elif self.red_warning_state == 2:
             self.red_yellow_circle.place_forget()
-            self.red_red_circle1.config(image=self.red_circle_photo)
-            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_yellow_circle1.place_forget()
+            self.red_red_circle1.place_forget()
+            self.red_yellow_circle2.place_forget()
             self.red_red_circle2.place_forget()
+
+            self.red_red_circle.place(**self.red_red_circle_place_info)
         elif self.red_warning_state == 3:
-            self.red_yellow_circle.place(**self.red_yellow_circle_place_info)
-            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_yellow_circle.place_forget()
+            self.red_red_circle1.place_forget()
+            self.red_yellow_circle2.place_forget()
             self.red_red_circle2.place_forget()
+
+            self.red_red_circle.place(**self.red_red_circle_place_info)
+            self.red_yellow_circle1.place(**self.red_yellow_circle1_place_info)
+
         elif self.red_warning_state == 4:
             self.red_yellow_circle.place_forget()
+            self.red_yellow_circle1.place_forget()
+            self.red_yellow_circle2.place_forget()
+            self.red_red_circle2.place_forget()
+
+            self.red_red_circle.place(**self.red_red_circle_place_info)
             self.red_red_circle1.place(**self.red_red_circle1_place_info)
-            self.red_red_circle2.config(image=self.red_circle_photo)
-            self.red_red_circle2.place(**self.red_red_circle2_place_info)
+
+        elif self.red_warning_state == 5:
+            self.red_yellow_circle.place_forget()
+            self.red_yellow_circle1.place_forget()
+            self.red_red_circle2.place_forget()
+
+            self.red_red_circle.place(**self.red_red_circle_place_info)
+            self.red_red_circle1.place(**self.red_red_circle1_place_info)
+            self.red_yellow_circle2.place(**self.red_yellow_circle2_place_info)
         else:
             self.red_warning_state = 0
             self.red_yellow_circle.place_forget()
+            self.red_red_circle.place_forget()
+            self.red_yellow_circle1.place_forget()
             self.red_red_circle1.place_forget()
+            self.red_yellow_circle2.place_forget()
             self.red_red_circle2.place_forget()
 
     def blue_warning(self):
@@ -682,28 +1228,54 @@ class ScoreBoard:
         self.blue_warning_state += 1
 
         if self.blue_warning_state == 1:
-            self.blue_yellow_circle.config(image=self.yellow_circle_photo)
-            self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
+            self.blue_red_circle.place_forget()
+            self.blue_yellow_circle1.place_forget()
             self.blue_red_circle1.place_forget()
+            self.blue_yellow_circle2.place_forget()
             self.blue_red_circle2.place_forget()
+
+            self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
         elif self.blue_warning_state == 2:
             self.blue_yellow_circle.place_forget()
-            self.blue_red_circle1.config(image=self.red_circle_photo)
-            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_yellow_circle1.place_forget()
+            self.blue_red_circle1.place_forget()
+            self.blue_yellow_circle2.place_forget()
             self.blue_red_circle2.place_forget()
+
+            self.blue_red_circle.place(**self.blue_red_circle_place_info)
         elif self.blue_warning_state == 3:
-            self.blue_yellow_circle.place(**self.blue_yellow_circle_place_info)
-            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_yellow_circle.place_forget()
+            self.blue_red_circle1.place_forget()
+            self.blue_yellow_circle2.place_forget()
             self.blue_red_circle2.place_forget()
+
+            self.blue_red_circle.place(**self.blue_red_circle_place_info)
+            self.blue_yellow_circle1.place(**self.blue_yellow_circle1_place_info)
+
         elif self.blue_warning_state == 4:
             self.blue_yellow_circle.place_forget()
+            self.blue_yellow_circle1.place_forget()
+            self.blue_yellow_circle2.place_forget()
+            self.blue_red_circle2.place_forget()
+
+            self.blue_red_circle.place(**self.blue_red_circle_place_info)
             self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
-            self.blue_red_circle2.config(image=self.red_circle_photo)
-            self.blue_red_circle2.place(**self.blue_red_circle2_place_info)
+
+        elif self.blue_warning_state == 5:
+            self.blue_yellow_circle.place_forget()
+            self.blue_yellow_circle1.place_forget()
+            self.blue_red_circle2.place_forget()
+
+            self.blue_red_circle.place(**self.blue_red_circle_place_info)
+            self.blue_red_circle1.place(**self.blue_red_circle1_place_info)
+            self.blue_yellow_circle2.place(**self.blue_yellow_circle2_place_info)
         else:
             self.blue_warning_state = 0
             self.blue_yellow_circle.place_forget()
+            self.blue_red_circle.place_forget()
+            self.blue_yellow_circle1.place_forget()
             self.blue_red_circle1.place_forget()
+            self.blue_yellow_circle2.place_forget()
             self.blue_red_circle2.place_forget()
 
     def resource_path(self, relative_path):
@@ -763,18 +1335,18 @@ class ScoreBoard:
 
     def blink_winner(self, count, is_blue_win):
         if count <= 0:
-            self.red_label.config(fg="white")
-            self.blue_label.config(fg="white")
+            self.red_score_label.config(fg="white")
+            self.blue_score_label.config(fg="white")
             self.parent.update_idletasks()
             return
 
         if is_blue_win:
-            self.blue_label.config(
-                fg="yellow" if self.blue_label.cget("fg") == "white" else "white"
+            self.blue_score_label.config(
+                fg="yellow" if self.blue_score_label.cget("fg") == "white" else "white"
             )
         else:
-            self.red_label.config(
-                fg="yellow" if self.red_label.cget("fg") == "white" else "white"
+            self.red_score_label.config(
+                fg="yellow" if self.red_score_label.cget("fg") == "white" else "white"
             )
 
         self.parent.update_idletasks()
@@ -786,7 +1358,7 @@ class ControlPanel(tk.Toplevel):
     Control panel class for managing user interactions and scoreboard updates.
     """
 
-    def __init__(self, master, scoreboard, monitor, timer):
+    def __init__(self, master, scoreboard, monitor, timer, timer_rest):
         """
         Initialize the control panel with UI components and event bindings.
 
@@ -800,6 +1372,7 @@ class ControlPanel(tk.Toplevel):
         self.scoreboard = scoreboard
         self.monitor = monitor
         self.timer = timer
+        self.timer_rest = timer_rest
 
         self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
         self.overrideredirect(False)
@@ -808,32 +1381,34 @@ class ControlPanel(tk.Toplevel):
         self.screen_height = self.monitor.height
 
         self.widgets = ScoreBoard(
-            self, self.screen_width, self.screen_height, self.timer
+            self, self.screen_width, self.screen_height, self.timer, self.timer_rest
         )
 
         self.title("컨트롤 패널")
 
-        self.widgets.red_button.config(command=self.update_red_score)
-        self.widgets.red_button_minus.config(command=self.update_red_decrease)
+        self.widgets.btn_red_plus.config(command=self.update_red_score)
+        self.widgets.btn_red_minus.config(command=self.update_red_decrease)
         self.widgets.red_warning_button.config(command=self.update_red_warning)
-        self.widgets.blue_button.config(command=self.update_blue_score)
-        self.widgets.blue_button_minus.config(command=self.update_blue_decrease)
+        self.widgets.btn_blue_plus.config(command=self.update_blue_score)
+        self.widgets.btn_blue_minus.config(command=self.update_blue_decrease)
         self.widgets.blue_warning_button.config(command=self.update_blue_warning)
-        self.widgets.increase_timer_button.config(
+        self.widgets.btn_timer_plus_1.config(
             command=lambda: self.update_increase_timer(100)
         )
-        self.widgets.decrease_timer_button.config(
+        self.widgets.btn_timer_minus_1.config(
             command=lambda: self.update_decrease_timer(100)
         )
-        self.widgets.increase_timer10_button.config(
+        self.widgets.btn_timer_plus_10.config(
             command=lambda: self.update_increase_timer(1000)
         )
-        self.widgets.decrease_timer10_button.config(
+        self.widgets.btn_timer_minus_10.config(
             command=lambda: self.update_decrease_timer(1000)
         )
-        self.widgets.start_timer_button.config(command=self.update_start_timer)
-        self.widgets.reset_timer_button.config(command=self.update_reset_timer)
-        self.widgets.capture_button.config(command=self.save_screenshot)
+        self.widgets.btn_start_timer.config(command=self.update_start_timer)
+        self.widgets.btn_start_timer_rest.config(command=self.update_start_timer_rest)
+        self.widgets.btn_timer_rest.config(command=self.update_toggle_rest_mode)
+        self.widgets.btn_capture.config(command=self.save_screenshot)
+        self.widgets.btn_timer_reset.config(command=self.update_reset_timer)
         # Bind the keys
         self.bind("<KeyPress>", self.update_on_key_pressed)
 
@@ -844,19 +1419,19 @@ class ControlPanel(tk.Toplevel):
         self.widgets.red_name_entry.bind("<KeyRelease>", self.copy_red_name_entry)
         self.widgets.blue_name_entry.bind("<KeyRelease>", self.copy_blue_name_entry)
         # self.widgets.weight_entry.bind("<KeyRelease>", self.copy_weight_entry)
-        
+
         self.init_menu()
         self.init_log()
         self.add_round_row()
-        
+
     def init_log(self):
-        '''
+        """
         점수 로그 화면 표시
           - 시간-행위 쌍으로 표시(01:22 +1)
-        '''
+        """
         style = ttk.Style(root)
         style.theme_use("clam")
-        
+
         def fixed_map(option):
             # Fix for setting text colour for Tkinter 8.6.9
             # From: https://core.tcl.tk/tk/info/509cafafae
@@ -866,51 +1441,81 @@ class ControlPanel(tk.Toplevel):
 
             # style.map() returns an empty list for missing options, so this
             # should be future-safe.
-            return [elm for elm in style.map('Treeview', query_opt=option) if
-            elm[:2] != ('!disabled', '!selected')]
+            return [
+                elm
+                for elm in style.map("Treeview", query_opt=option)
+                if elm[:2] != ("!disabled", "!selected")
+            ]
 
-        style.map('Treeview', foreground=fixed_map('foreground'), background=fixed_map('background'), fieldbackground=fixed_map('fieldbackground'))
-        
+        style.map(
+            "Treeview",
+            foreground=fixed_map("foreground"),
+            background=fixed_map("background"),
+            fieldbackground=fixed_map("fieldbackground"),
+        )
+
         log_font = (
             self.widgets.str_number_font,
             self.widgets.adjust_widget_size(15),
         )
         log_rowheight = self.widgets.adjust_widget_size(30)
-        style.configure("Red.Treeview", background="#F5E6D3", foreground="black", fieldbackground="red", font=log_font, rowheight=log_rowheight)
-        style.configure("Blue.Treeview", background="#F5E6D3", foreground="black", fieldbackground="blue", font=log_font, rowheight=log_rowheight)
-        
-        #red
-        self.red_log_panel = tk.Frame(self.widgets.red_panel, bg='black')
+        style.configure(
+            "Red.Treeview",
+            background="#F5E6D3",
+            foreground="black",
+            fieldbackground="lightgray",
+            font=log_font,
+            rowheight=log_rowheight,
+        )
+        style.configure(
+            "Blue.Treeview",
+            background="#F5E6D3",
+            foreground="black",
+            fieldbackground="lightgray",
+            font=log_font,
+            rowheight=log_rowheight,
+        )
+
+        # red
+        self.red_log_panel = tk.Frame(self.widgets.red_panel, bg="black")
         self.red_log_panel.place(relx=0.85, rely=0, relwidth=0.15, relheight=0.88)
-        
-        self.red_log_view = ttk.Treeview(self.red_log_panel, columns=("time",), show='tree', style="Red.Treeview")
-        
-        self.red_log_view.column('#0', width=35, anchor=tk.CENTER)
+
+        self.red_log_view = ttk.Treeview(
+            self.red_log_panel, columns=("time",), show="tree", style="Red.Treeview"
+        )
+
+        self.red_log_view.column("#0", width=35, anchor=tk.CENTER)
         self.red_log_view.column("time", width=75, anchor=tk.CENTER)
-        
+
         # Red Treeview 태그 설정
-        self.red_log_view.tag_configure('odd_row', background='#FFD1D1')
-        self.red_log_view.tag_configure('even_row', background='#FFE8E8')
-        self.red_log_view.tag_configure('round_row', background='#8B0000', foreground='white')
-        
+        self.red_log_view.tag_configure("odd_row", background="#FFD1D1")
+        self.red_log_view.tag_configure("even_row", background="#FFE8E8")
+        self.red_log_view.tag_configure(
+            "round_row", background="#8B0000", foreground="white"
+        )
+
         self.red_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
+
         # blue
         self.blue_log_panel = tk.Frame(self.widgets.blue_panel)
         self.blue_log_panel.place(relx=0, rely=0, relwidth=0.15, relheight=0.88)
-        
-        self.blue_log_view = ttk.Treeview(self.blue_log_panel, columns=("time",), show='tree', style="Blue.Treeview")
-        
-        self.blue_log_view.column('#0', width=35, anchor=tk.CENTER)
+
+        self.blue_log_view = ttk.Treeview(
+            self.blue_log_panel, columns=("time",), show="tree", style="Blue.Treeview"
+        )
+
+        self.blue_log_view.column("#0", width=35, anchor=tk.CENTER)
         self.blue_log_view.column("time", width=75, anchor=tk.CENTER)
-        
+
         # Blue Treeview 태그 설정
-        self.blue_log_view.tag_configure('odd_row', background='#D1D1FF')
-        self.blue_log_view.tag_configure('even_row', background='#E8E8FF')
-        self.blue_log_view.tag_configure('round_row', background='#00008B', foreground='white')
-        
-        self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)   
-        
+        self.blue_log_view.tag_configure("odd_row", background="#D1D1FF")
+        self.blue_log_view.tag_configure("even_row", background="#E8E8FF")
+        self.blue_log_view.tag_configure(
+            "round_row", background="#00008B", foreground="white"
+        )
+
+        self.blue_log_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
     def add_log_item(self, treeview, time, image=None, text=None):
         """
         Add a log item to the specified Treeview widget.
@@ -922,75 +1527,79 @@ class ControlPanel(tk.Toplevel):
             text (str, optional): Text to display in the log.
         """
         item_count = len(treeview.get_children())
-        tag = 'odd_row' if item_count % 2 == 0 else 'even_row'
-        
+        tag = "odd_row" if item_count % 2 == 0 else "even_row"
+
         if image:
             treeview.insert("", tk.END, values=(time,), image=image, tags=(tag,))
         elif text is not None:
             treeview.insert("", tk.END, values=(time,), text=text, tags=(tag,))
-            
+
     def _add_empty_item(self, treeview):
         item_count = len(treeview.get_children())
-        tag = 'odd_row' if item_count % 2 == 0 else 'even_row'
+        tag = "odd_row" if item_count % 2 == 0 else "even_row"
         treeview.insert("", tk.END, values=("",), tags=(tag,))
-            
+
     def balance_log_views(self):
         """
         Ensure the log views for both teams have the same number of rows.
         """
         red_count = len(self.red_log_view.get_children())
         blue_count = len(self.blue_log_view.get_children())
-        
+
         target_count = max(red_count, blue_count)
-        
+
         while len(self.red_log_view.get_children()) < target_count:
             self._add_empty_item(self.red_log_view)
-        
+
         while len(self.blue_log_view.get_children()) < target_count:
             self._add_empty_item(self.blue_log_view)
-            
+
     def add_round_row(self):
         """
         Add a new round row to the log views.
         """
         self.balance_log_views()
-        
-        self.red_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
-        self.blue_log_view.insert("", tk.END, values=('Round',), text=self.widgets.round, tags=('round_row',))
-    
+
+        self.red_log_view.insert(
+            "", tk.END, values=("Round",), text=self.widgets.round, tags=("round_row",)
+        )
+        self.blue_log_view.insert(
+            "", tk.END, values=("Round",), text=self.widgets.round, tags=("round_row",)
+        )
+
     def init_menu(self):
         """
         Initialize the top menu bar with help options.
         """
         menubar = tk.Menu(self)
-        
+
         helpmenu = tk.Menu(menubar, tearoff=0)
         helpmenu.add_command(label="프로그램 정보", command=self.help_dialog)
-        
+
         menubar.add_cascade(label="Help", menu=helpmenu)
-        
+
         self.config(menu=menubar)
         self.menubar = menubar
-        
+
         self.help_dialog = None
-        
+
     def help_dialog(self):
         """
         Display a help dialog with program information and shortcuts.
         """
-        
+
         # Check if a help_dialog instance already exists
         if self.help_dialog is not None and self.help_dialog.winfo_exists():
             # If it does, focus on the existing window
             self.help_dialog.focus_force()
             return
-        
+
         self.help_dialog = tk.Toplevel(self)
         self.help_dialog.title("프로그램 정보")
         self.help_dialog.geometry("480x270")  # Set a reasonable initial size
         # Center the dialog on the screen
         self.center_window(self.help_dialog)
-            
+
         notebook = ttk.Notebook(self.help_dialog)
 
         # 탭 1: 이미지
@@ -1012,7 +1621,7 @@ class ControlPanel(tk.Toplevel):
             ("엔터", "전체 화면 모드 전환"),
             ("Esc", "전체 화면 모드 종료"),
         ]
-        
+
         tab2 = tk.Frame(notebook)
         # Create the Treeview with headings
         treeview = ttk.Treeview(tab2, columns=("단축키", "설명"), show="headings")
@@ -1035,7 +1644,7 @@ class ControlPanel(tk.Toplevel):
         notebook.add(tab2, text="단축키")
 
         notebook.pack(fill=tk.BOTH, expand=True)
-                
+
     def center_window(self, window):
         """
         Center the specified window on the screen.
@@ -1057,7 +1666,6 @@ class ControlPanel(tk.Toplevel):
 
         # Set the window position
         window.geometry(f"+{x}+{y}")
-        
 
     def init_geometry(self):
         self.geometry(
@@ -1101,17 +1709,21 @@ class ControlPanel(tk.Toplevel):
         """
         self.scoreboard.widgets.red_increase()
         self.widgets.red_increase()
-        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(),text="+1")
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="+1")
 
     def update_red_decrease(self):
         self.scoreboard.widgets.red_decrease()
         self.widgets.red_decrease()
-        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(),text="-1")
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="-1")
 
     def update_red_warning(self):
         self.widgets.red_warning()
         self.scoreboard.widgets.red_warning()
-        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), image=self.widgets.log_yellow_circle_photo)
+        self.add_log_item(
+            self.red_log_view,
+            self.timer.get_time_remaining(),
+            image=self.widgets.log_yellow_circle_photo,
+        )
 
     def update_blue_score(self):
         """
@@ -1119,27 +1731,45 @@ class ControlPanel(tk.Toplevel):
         """
         self.scoreboard.widgets.blue_increase()
         self.widgets.blue_increase()
-        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), text="+1")
+        self.add_log_item(
+            self.blue_log_view, self.timer.get_time_remaining(), text="+1"
+        )
 
     def update_blue_decrease(self):
         self.scoreboard.widgets.blue_decrease()
         self.widgets.blue_decrease()
-        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), text="-1")
+        self.add_log_item(
+            self.blue_log_view, self.timer.get_time_remaining(), text="-1"
+        )
 
     def update_blue_warning(self):
         self.scoreboard.widgets.blue_warning()
         self.widgets.blue_warning()
-        self.add_log_item(self.blue_log_view, self.timer.get_time_remaining(), image=self.widgets.log_yellow_circle_photo)
+        self.add_log_item(
+            self.blue_log_view,
+            self.timer.get_time_remaining(),
+            image=self.widgets.log_yellow_circle_photo,
+        )
 
     def update_decrease_timer(self, value):
         self.timer.decrease_timer(value)
-        self.scoreboard.widgets.decrease_timer(value)
-        self.widgets.decrease_timer(value)
+        self.scoreboard.widgets.update_timer()
+        self.widgets.update_timer()
 
     def update_increase_timer(self, value):
         self.timer.increase_timer(value)
-        self.scoreboard.widgets.increase_timer(value)
-        self.widgets.increase_timer(value)
+        self.scoreboard.widgets.update_timer()
+        self.widgets.update_timer()
+
+    def update_decrease_timer_rest(self, value):
+        self.timer_rest.decrease_timer(value)
+        self.scoreboard.widgets.update_timer_rest()
+        self.widgets.update_timer_rest()
+
+    def update_increase_timer_rest(self, value):
+        self.timer_rest.increase_timer(value)
+        self.scoreboard.widgets.update_timer_rest()
+        self.widgets.update_timer_rest()
 
     def update_on_key_pressed(self, event):
         if (
@@ -1151,19 +1781,11 @@ class ControlPanel(tk.Toplevel):
             key_code = event.keycode
             if key_code == 49:  # 1
                 self.update_blue_score()
-                # self.widgets.blue_increase()
-                # self.scoreboard.widgets.blue_increase()
             elif key_code == 50:  # 2
                 self.update_blue_decrease()
-                # self.widgets.blue_decrease()
-                # self.scoreboard.widgets.blue_decrease()
             elif key_code == 189:  # -
-                # self.widgets.red_increase()
-                # self.scoreboard.widgets.red_increase()
                 self.update_red_score()
             elif key_code == 187:  # =
-                # self.widgets.red_decrease()
-                # self.scoreboard.widgets.red_decrease()
                 self.update_red_decrease()
             elif key_code == 52:  # 4
                 self.widgets.blink_winner(6, True)  # Blue Win
@@ -1178,30 +1800,67 @@ class ControlPanel(tk.Toplevel):
                     self.scoreboard.overrideredirect()
                 )
                 self.widgets.toggle_fullscreen(self.overrideredirect())
-                
+
                 if self.overrideredirect():
                     self.config(menu="")
                 else:
                     self.config(menu=self.menubar)
-                
+
             elif key_code == 27:  # Escape
                 self.scoreboard.widgets.toggle_fullscreen(True)
                 self.widgets.toggle_fullscreen(True)
                 self.config(menu=self.menubar)
-                
+
         elif event.keycode == 13:  # Enter
             self.focus()
 
     def update_start_timer(self):
-        # self.scoreboard.widgets.start_timer()
         self.start_timer()
 
+    def update_start_timer_rest(self):
+        self.start_timer_rest()
+
+    def update_toggle_rest_mode(self):
+        self.widgets.is_rest = not self.widgets.is_rest
+
+        # change command btn_timer_minus_*, btn_timer_plus_*
+        if self.widgets.is_rest:
+            self.widgets.btn_timer_plus_1.config(
+                command=lambda: self.update_increase_timer_rest(100)
+            )
+            self.widgets.btn_timer_minus_1.config(
+                command=lambda: self.update_decrease_timer_rest(100)
+            )
+            self.widgets.btn_timer_plus_10.config(
+                command=lambda: self.update_increase_timer_rest(1000)
+            )
+            self.widgets.btn_timer_minus_10.config(
+                command=lambda: self.update_decrease_timer_rest(1000)
+            )
+        else:
+            self.widgets.btn_timer_plus_1.config(
+                command=lambda: self.update_increase_timer(100)
+            )
+            self.widgets.btn_timer_minus_1.config(
+                command=lambda: self.update_decrease_timer(100)
+            )
+            self.widgets.btn_timer_plus_10.config(
+                command=lambda: self.update_increase_timer(1000)
+            )
+            self.widgets.btn_timer_minus_10.config(
+                command=lambda: self.update_decrease_timer(1000)
+            )
+
+        self.widgets.toggle_rest_mode()
+        self.scoreboard.widgets.is_rest = self.widgets.is_rest
+        self.scoreboard.widgets.toggle_rest_mode()
+
     def update_reset_timer(self):
-        '''
+        """
         reset_timer 재정의
-        '''
+        """
         self.widgets.reset_timer()
-        self.scoreboard.reset_timer()
+        self.scoreboard.widgets.reset_timer()
         # delete logs
         self.red_log_view.delete(*self.red_log_view.get_children())
         self.blue_log_view.delete(*self.blue_log_view.get_children())
@@ -1209,45 +1868,28 @@ class ControlPanel(tk.Toplevel):
         self.add_round_row()
 
     def swap_positions(self):
-        red_widgets = [
-            self.widgets.red_panel,
-            self.widgets.red_warning_button,
-            self.widgets.red_warning_box,
-            self.widgets.red_yellow_circle,
-            self.widgets.red_red_circle1,
-            self.widgets.red_red_circle2,
-            self.widgets.red_button,
-            self.widgets.red_button_minus,
-        ]
-
-        blue_widgets = [
-            self.widgets.blue_panel,
-            self.widgets.blue_warning_button,
-            self.widgets.blue_warning_box,
-            self.widgets.blue_yellow_circle,
-            self.widgets.blue_red_circle1,
-            self.widgets.blue_red_circle2,
-            self.widgets.blue_button,
-            self.widgets.blue_button_minus,
-        ]
-
-        # Save the original relx values
-        red_original_relx_values = [
-            widget.place_info()["relx"] for widget in red_widgets
-        ]
-        blue_original_relx_values = [
-            widget.place_info()["relx"] for widget in blue_widgets
-        ]
-
-        # Swap relx values for red and blue widgets
-        for i in range(len(red_widgets)):
-            red_widget = red_widgets[i]
-            blue_widget = blue_widgets[i]
-
-            red_widget.place_configure(relx=blue_original_relx_values[i])
-            blue_widget.place_configure(relx=red_original_relx_values[i])
+        """
+        듀얼 화면 표시를 위해 red, blue 패널 위치를 바꾼다.
+        """
+        # print("Setting initial swapped positions: Blue Left, Red Right")
+        if hasattr(self.widgets, "blue_panel") and hasattr(self.widgets, "red_panel"):
+            # Re-place Blue panel to the left
+            self.widgets.blue_panel.place_configure(relx=0)
+            # Re-place Red panel to the right
+            self.widgets.red_panel.place_configure(relx=0.5)
+        else:
+            print("Error: Panels not initialized before calling swap_position.")
 
         self.widgets.save_warning_widgets()
+        # 위치 초기화
+        self.widgets.red_warning_state = -1
+        self.widgets.blue_warning_state = -1
+        self.scoreboard.widgets.red_warning_state = -1
+        self.scoreboard.widgets.blue_warning_state = -1
+        self.widgets.red_warning()
+        self.scoreboard.widgets.red_warning()
+        self.widgets.blue_warning()
+        self.scoreboard.widgets.blue_warning()
 
     def start_timer(self):
         """
@@ -1257,26 +1899,52 @@ class ControlPanel(tk.Toplevel):
             if not self.timer.timer_running:
                 self.timer.start(True)
                 self.timer.is_start = True
-                self.widgets.show_start_timer_button(
-                    True
-                )  # Show 'Stop Timer' and Hide widgets
+                self.widgets.show_btn_start_timer(True)  # Show '멈춤' and Hide widgets
                 self.countdown()
             else:
                 self.timer.start(False)
-                self.widgets.show_start_timer_button(
-                    False
-                )  # Show 'Start Timer' and Show widgets
+                self.widgets.show_btn_start_timer(False)  # Show '시작' and Show widgets
         else:
-            # 2라운드 시작
+            # 2라운드 시작 버튼 눌렀을 때
             self.timer.timer_running = False
             self.timer.is_start = False
             self.timer.start_timer_seconds = 3000
             self.timer.timer_seconds = 3000
             self.widgets.update_timer()
             self.scoreboard.widgets.update_timer()
-            self.widgets.show_start_timer_button(
-                False
-            )  # Show 'Start Timer' and Show widgets
+            self.widgets.show_btn_start_timer(False)  # Show '시작' and Show widgets
+
+    def start_timer_rest(self):
+        """
+        Start or stop the rest timer and update the UI accordingly.
+        """
+        if self.timer_rest.start_timer_seconds > 0:
+            if not self.timer_rest.timer_running:
+                self.timer_rest.start(True)
+                self.timer_rest.is_start = True
+                self.widgets.show_btn_start_timer_rest(
+                    True
+                )  # Show '멈춤' and Hide widgets
+
+                # Add rest log
+                self.balance_log_views()
+                self.add_log_item(
+                    self.blue_log_view,
+                    self.timer_rest.get_time_remaining(),
+                    image=self.widgets.log_rest_photo,
+                )
+                self.add_log_item(
+                    self.red_log_view,
+                    self.timer_rest.get_time_remaining(),
+                    image=self.widgets.log_rest_photo,
+                )
+
+                self.countdown_rest()
+            else:
+                self.timer_rest.start(False)
+                self.widgets.show_btn_start_timer_rest(
+                    False
+                )  # Show '휴식' and Show widgets
 
     def countdown(self):
         if self.timer.timer_running:
@@ -1286,7 +1954,7 @@ class ControlPanel(tk.Toplevel):
                 self.widgets.update_timer()
                 self.scoreboard.widgets.update_timer()
                 self.after(10, self.countdown)
-            elif self.timer.timer_seconds <= 0:  # 시간 종료로 경기가 끝났을 때
+            elif self.timer.timer_seconds <= 0:  # 시간 종료. 경기 끝
                 # Reset Timer Button
                 self.timer.timer_running = False
                 self.timer.is_start = False
@@ -1305,16 +1973,35 @@ class ControlPanel(tk.Toplevel):
 
                 # Update round number
                 self.widgets.round += 1
-                self.widgets.start_timer_button.config(
+                self.widgets.btn_start_timer.config(
                     text="{} Round".format(self.widgets.round)
                 )
-                
+
                 # Add round log
                 self.add_round_row()
-                
 
                 # Blink the winner's score
                 # self.blink_winner(6)  # Blink 3 times (6 because it's a half cycle of blinking)
+
+    def countdown_rest(self):
+        if self.timer_rest.timer_running:
+            self.timer_rest.update_timer_seconds()
+
+            if self.timer_rest.timer_seconds > 0:
+                self.widgets.update_timer_rest()
+                self.scoreboard.widgets.update_timer_rest()
+                self.after(10, self.countdown_rest)
+            elif self.timer_rest.timer_seconds <= 0:  # 시간 종료. 휴식 끝
+                # Reset Rest Timer Button
+                self.timer_rest.reset()
+                self.widgets.show_btn_start_timer_rest(False)
+
+                self.widgets.update_timer_rest()
+                self.scoreboard.widgets.update_timer_rest()
+
+                # Play an MP3 file when the timer ends
+                self.widgets.play_sound()
+                self.scoreboard.widgets.play_sound()
 
     def save_screenshot(self):
         """
@@ -1322,7 +2009,7 @@ class ControlPanel(tk.Toplevel):
         """
         """현재 폴더에 스크린샷을 저장한다.
         1. 파일 이름 : title_entry.get() + '_' + weight_entry.get() + '_' + round_entry.get() +
-                       '_' + red_name_entry.get() + '_' + red_label.get() + '_' + blue_name_entry.get() + '_' + blue_label.get() + '.png'
+                       '_' + red_name_entry.get() + '_' + red_score_label.get() + '_' + blue_name_entry.get() + '_' + blue_score_label.get() + '.png'
         2. 경로 : 현재 폴더
         """
 
@@ -1343,48 +2030,70 @@ class ControlPanel(tk.Toplevel):
             + str(self.widgets.blue_score)
             + "점.png"
         )
-
-        # Get the handle of the window
-        hwnd = self.winfo_id()
-
-        # Get the size of the window
-        left, top, right, bot = win32gui.GetWindowRect(hwnd)
-        w = right - left
-        h = bot - top
-
-        # Get the window device context
-        hwnd_dc = win32gui.GetWindowDC(hwnd)
-        mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
-        save_dc = mfc_dc.CreateCompatibleDC()
-
-        # Create a bitmap and select it into the device context
-        save_bitmap = win32ui.CreateBitmap()
-        save_bitmap.CreateCompatibleBitmap(mfc_dc, w, h)
-        save_dc.SelectObject(save_bitmap)
-
-        # BitBlt the window to the bitmap
-        save_dc.BitBlt((0, 0), (w, h), mfc_dc, (0, 0), win32con.SRCCOPY)
-
-        # Save the bitmap to a file
-        bmpinfo = save_bitmap.GetInfo()
-        bmpstr = save_bitmap.GetBitmapBits(True)
-        im = Image.frombuffer(
-            "RGB",
-            (bmpinfo["bmWidth"], bmpinfo["bmHeight"]),
-            bmpstr,
-            "raw",
-            "BGRX",
-            0,
-            1,
+        # Create the file name
+        file_name_view = (
+            self.widgets.title_entry.get()
+            + "_"
+            + self.widgets.weight_entry.get()
+            + "_"
+            + str(self.widgets.round)
+            + "R_"
+            + self.widgets.red_name_entry.get()
+            + "_"
+            + str(self.widgets.red_score)
+            + "점_"
+            + self.widgets.blue_name_entry.get()
+            + "_"
+            + str(self.widgets.blue_score)
+            + "점_view.png"
         )
 
-        im.save(file_name)
+        def save_screenshot_bitmap(file_name, hwnd):
 
-        # Clean up
-        win32gui.DeleteObject(save_bitmap.GetHandle())
-        save_dc.DeleteDC()
-        mfc_dc.DeleteDC()
-        win32gui.ReleaseDC(hwnd, hwnd_dc)
+            # Get the size of the window
+            left, top, right, bot = win32gui.GetWindowRect(hwnd)
+            w = right - left
+            h = bot - top
+
+            # Get the window device context
+            hwnd_dc = win32gui.GetWindowDC(hwnd)
+            mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
+            save_dc = mfc_dc.CreateCompatibleDC()
+
+            # Create a bitmap and select it into the device context
+            save_bitmap = win32ui.CreateBitmap()
+            save_bitmap.CreateCompatibleBitmap(mfc_dc, w, h)
+            save_dc.SelectObject(save_bitmap)
+
+            # BitBlt the window to the bitmap
+            save_dc.BitBlt((0, 0), (w, h), mfc_dc, (0, 0), win32con.SRCCOPY)
+
+            # Save the bitmap to a file
+            bmpinfo = save_bitmap.GetInfo()
+            bmpstr = save_bitmap.GetBitmapBits(True)
+            im = Image.frombuffer(
+                "RGB",
+                (bmpinfo["bmWidth"], bmpinfo["bmHeight"]),
+                bmpstr,
+                "raw",
+                "BGRX",
+                0,
+                1,
+            )
+
+            im.save(file_name)
+
+            # Clean up
+            win32gui.DeleteObject(save_bitmap.GetHandle())
+            save_dc.DeleteDC()
+            mfc_dc.DeleteDC()
+            win32gui.ReleaseDC(hwnd, hwnd_dc)
+
+        # Save the screenshot of the control panel
+        save_screenshot_bitmap(file_name, self.winfo_id())
+
+        # Save the screenshot of the scoreboard view
+        save_screenshot_bitmap(file_name_view, self.scoreboard.winfo_id())
 
 
 class ViewPanel(tk.Toplevel):
@@ -1392,7 +2101,7 @@ class ViewPanel(tk.Toplevel):
     View panel class for displaying the scoreboard to the audience.
     """
 
-    def __init__(self, master, monitor, timer):
+    def __init__(self, master, monitor, timer, timer_rest):
         """
         Initialize the view panel with UI components.
 
@@ -1406,34 +2115,34 @@ class ViewPanel(tk.Toplevel):
         self.title("스코어보드")
         self.monitor = monitor
         self.timer = timer
+        self.timer_rest = timer_rest
         self.geometry(f"{monitor.width}x{monitor.height}+{monitor.x}+{monitor.y}")
         self.overrideredirect(False)
 
         self.screen_width = self.monitor.width
         self.screen_height = self.monitor.height
-        self.widgets = ScoreBoard(self, self.screen_width, self.screen_height, timer)
+        self.widgets = ScoreBoard(
+            self, self.screen_width, self.screen_height, timer, timer_rest
+        )
 
         # view panel에서 숨김
-        self.widgets.red_warning_button.place_forget()
-        self.widgets.red_button.place_forget()
-        self.widgets.red_button_minus.place_forget()
-        self.widgets.blue_warning_button.place_forget()
-        self.widgets.blue_button.place_forget()
-        self.widgets.blue_button_minus.place_forget()
-        self.widgets.red_warning_button.place_forget()
-
-        self.widgets.start_timer_button.place_forget()
-        self.widgets.reset_timer_button.place_forget()
-        self.widgets.increase_timer_button.place_forget()
-        self.widgets.increase_timer10_button.place_forget()
-        self.widgets.decrease_timer_button.place_forget()
-        self.widgets.decrease_timer10_button.place_forget()
-
+        self.widgets.control_frame.place_forget()
         self.widgets.weight_entry.place_forget()
-        self.widgets.capture_button.place_forget()
 
         # timer 위젯 위치 조정
-        self.widgets.timer_canvas.place(relx=0.5, rely=0.73, anchor="center")
+        self.widgets.timer_canvas_rely = 0.73
+        self.widgets.timer_canvas.place(
+            relx=0.5, rely=self.widgets.timer_canvas_rely, anchor="center"
+        )
+        self.widgets.timer_canvas_rest.place(
+            relx=0.5,
+            rely=(
+                self.widgets.timer_canvas_rely
+                - (self.widgets.timer_label_height / 1000)
+            ),
+            anchor="center",
+        )
+        self.widgets.toggle_rest_mode()
 
         # 위젯 크기 조정
         self.widgets.red_panel.place(relheight=0.881)
@@ -1446,8 +2155,8 @@ class ViewPanel(tk.Toplevel):
         )
         self.widgets.red_name_entry.config(font=self.widgets.name_font)
         self.widgets.blue_name_entry.config(font=self.widgets.name_font)
-        self.widgets.red_label.config(pady=60, padx=20)
-        self.widgets.blue_label.config(pady=60, padx=20)
+        self.widgets.red_score_label.config(pady=60, padx=20)
+        self.widgets.blue_score_label.config(pady=60, padx=20)
 
         self.widgets.save_warning_widgets()
 
@@ -1478,8 +2187,8 @@ class ViewPanel(tk.Toplevel):
         self.widgets.round = 1
         self.widgets.red_score = 0
         self.widgets.blue_score = 0
-        self.widgets.red_label.config(text="{}".format(self.widgets.red_score))
-        self.widgets.blue_label.config(text="{}".format(self.widgets.blue_score))
+        self.widgets.red_score_label.config(text="{}".format(self.widgets.red_score))
+        self.widgets.blue_score_label.config(text="{}".format(self.widgets.blue_score))
         self.widgets.red_warning_state = -1
         self.widgets.blue_warning_state = -1
 
@@ -1505,9 +2214,12 @@ if __name__ == "__main__":
         monitor.append(monitor[0])
 
     timer = Timer()
+    timer_rest = Timer()
+    timer_rest.init_time = 6000  # 60초
+    timer_rest.reset()
 
-    score_board = ViewPanel(root, monitor[1], timer)
-    control_panel = ControlPanel(root, score_board, monitor[0], timer)
+    score_board = ViewPanel(root, monitor[1], timer, timer_rest)
+    control_panel = ControlPanel(root, score_board, monitor[0], timer, timer_rest)
     control_panel.swap_positions()
 
     root.mainloop()
