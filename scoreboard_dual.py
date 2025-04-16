@@ -1072,6 +1072,9 @@ class ScoreBoard:
             self.timer_label_rest.place_forget()
             self.btn_start_timer_rest.pack_forget()
 
+            self.timer_rest.reset()
+            self.update_timer_rest()
+
             # show widget
             self.btn_start_timer.pack(fill=tk.BOTH, expand=True)
             # 눌림 상태 해제
