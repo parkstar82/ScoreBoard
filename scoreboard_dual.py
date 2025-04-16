@@ -17,12 +17,6 @@ import win32ui
 import win32con
 
 
-# 1. 글씨체 원복
-# 2. 휴식 종료 시 휴식 모드 종료
-# 3. 사운드 버그 수정
-# 4. 휴식 타이머 위치 조정, 깜박임 적용
-
-
 class ScoreBoard:
     def __init__(self, parent, screen_width, screen_height, timer, timer_rest):
         self.parent = parent
