@@ -29,8 +29,8 @@ class ScoreBoard:
         self.round = 1
         self.red_score = 0
         self.blue_score = 0
-        # self.str_font = "굴림"  # Windows Basic 한글 Font
-        self.str_font = "Arial"  # Windows Basic 한글 Font
+        self.str_font = "굴림"  # Windows Basic 한글 Font
+        # self.str_font = "Arial"  # Windows Basic 한글 Font
         self.str_number_font = "Arial"  # 숫자 폰트
 
         # Const
@@ -54,6 +54,7 @@ class ScoreBoard:
         self.util_icon_btn_frame_size = 50
         self.is_rest = False
         self.timer_canvas_rely = 0.532
+        self.timer_canvas_rest_rely = 0.332
 
         self.title_font = (
             self.str_font,
@@ -286,7 +287,7 @@ class ScoreBoard:
         self.init_weight_entry()
 
         self.control_frame = tk.Frame(
-            self.parent, bg="gray20", pady=5, padx=10
+            self.parent, bg="lightgray", pady=5, padx=10
         )  # Dark background
         self.control_frame.place(
             relx=0.5, rely=0.915, anchor="center", relwidth=1.0, relheight=0.19
@@ -306,12 +307,14 @@ class ScoreBoard:
         self.control_frame.grid_rowconfigure(0, weight=1)
 
         # Blue controls
-        self.blue_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        self.blue_control_frame = tk.Frame(self.control_frame, bg="lightgray")
         self.blue_control_frame.grid(
             row=0, column=0, sticky="ns"
         )  # Use grid, sticky stretches horizontally
         # Inner frame to hold the blue buttons, centered within blue_control_frame
-        self.blue_buttons_inner_frame = tk.Frame(self.blue_control_frame, bg="gray20")
+        self.blue_buttons_inner_frame = tk.Frame(
+            self.blue_control_frame, bg="lightgray"
+        )
         # Pack the inner frame so it stays centered
         self.blue_buttons_inner_frame.pack(
             anchor="e", expand=True
@@ -370,10 +373,10 @@ class ScoreBoard:
         )
 
         # Timer controls
-        self.timer_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        self.timer_control_frame = tk.Frame(self.control_frame, bg="lightgray")
         # Place timer controls in the center column (1) of the grid
         self.timer_control_frame.grid(row=0, column=2, padx=10)
-        self.timer_adj_minus_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        self.timer_adj_minus_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
         self.btn_timer_minus_1 = tk.Button(
             self.timer_adj_minus_frame,
             text="-1",
@@ -402,7 +405,7 @@ class ScoreBoard:
         # | rest|capture|reset|
         # |-------------------|
         # Capture button
-        self.timer_util_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        self.timer_util_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
         # Configure grid inside utility frame
         self.timer_util_frame.grid_columnconfigure(
             (0, 1, 2), weight=1, uniform="util_buttons"
@@ -533,7 +536,7 @@ class ScoreBoard:
         )
 
         # Timer adjust plus frame
-        self.timer_adj_plus_frame = tk.Frame(self.timer_control_frame, bg="gray20")
+        self.timer_adj_plus_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
         self.btn_timer_plus_1 = tk.Button(
             self.timer_adj_plus_frame,
             text="+1",
@@ -564,13 +567,13 @@ class ScoreBoard:
         self.timer_adj_plus_frame.pack(side=tk.LEFT, padx=5, fill="y", anchor="e")
 
         # Red controls
-        self.red_control_frame = tk.Frame(self.control_frame, bg="gray20")
+        self.red_control_frame = tk.Frame(self.control_frame, bg="lightgray")
         self.red_control_frame.grid(
             row=0, column=4, sticky="ns"
         )  # Sticky fills the cell
 
         # Inner frame to hold the red buttons, centered within red_control_frame
-        self.red_buttons_inner_frame = tk.Frame(self.red_control_frame, bg="gray20")
+        self.red_buttons_inner_frame = tk.Frame(self.red_control_frame, bg="lightgray")
         # Pack the inner frame so it stays centered
         self.red_buttons_inner_frame.pack(anchor="w", expand=True)
 
@@ -755,7 +758,7 @@ class ScoreBoard:
             self.parent,
             width=self.timer_label_width,
             height=self.timer_label_height,
-            bg="orange",
+            bg="moccasin",
             bd=0,
             relief="solid",
             highlightthickness=2,
@@ -765,7 +768,7 @@ class ScoreBoard:
         # 휴식 timer 위치
         self.timer_canvas_rest.place(
             relx=0.5,
-            rely=(self.timer_canvas_rely - (self.timer_label_height / 700)),
+            rely=self.timer_canvas_rest_rely,
             anchor="center",
         )
 
@@ -773,7 +776,7 @@ class ScoreBoard:
             self.timer_canvas_rest,
             textvariable=self.time_rest_remaining,
             font=self.timer_label_font,
-            bg="orange",
+            bg="moccasin",
         )
         self.timer_label_rest.place(
             x=(self.timer_label_width // 2),
@@ -1046,7 +1049,7 @@ class ScoreBoard:
         if self.is_rest:
             self.timer_canvas_rest.place(
                 relx=0.5,
-                rely=(self.timer_canvas_rely - (self.timer_label_height / 700)),
+                rely=self.timer_canvas_rest_rely,
                 anchor="center",
             )
             self.timer_label_rest.place(
@@ -1323,19 +1326,27 @@ class ScoreBoard:
     def blink_timer_rest(self):
         if self.timer_rest.timer_running:
             self.timer_canvas_rest.config(
-                bg="orange" if self.timer_canvas_rest.cget("bg") == "white" else "white"
+                bg=(
+                    "moccasin"
+                    if self.timer_canvas_rest.cget("bg") == "white"
+                    else "white"
+                )
             )
             self.timer_label_rest.config(
-                bg="orange" if self.timer_label_rest.cget("bg") == "white" else "white"
+                bg=(
+                    "moccasin"
+                    if self.timer_label_rest.cget("bg") == "white"
+                    else "white"
+                )
             )
         else:
-            self.timer_canvas_rest.config(bg="orange")
-            self.timer_label_rest.config(bg="orange")
+            self.timer_canvas_rest.config(bg="moccasin")
+            self.timer_label_rest.config(bg="moccasin")
 
         # self.parent.update_idletasks()
-        self.timer_canvas_rest.update_idletasks()
-        self.timer_label_rest.update_idletasks()
-        self.parent.after(500, self.blink_timer_rest)
+        self.parent.update_idletasks()
+        # self.timer_label_rest.update_idletasks()
+        self.parent.after(1000, self.blink_timer_rest)
 
 
 class ControlPanel(tk.Toplevel):
@@ -2121,16 +2132,15 @@ class ViewPanel(tk.Toplevel):
 
         # timer 위젯 위치 조정
         self.widgets.timer_canvas_rely = 0.73
+        self.widgets.timer_canvas_rest_rely = 0.53
         self.widgets.timer_canvas.place(
             relx=0.5, rely=self.widgets.timer_canvas_rely, anchor="center"
         )
-        self.widgets.timer_canvas_rest.place(
-            relx=0.5,
-            rely=(
-                self.widgets.timer_canvas_rely - (self.widgets.timer_label_height / 700)
-            ),
-            anchor="center",
-        )
+        # self.widgets.timer_canvas_rest.place(
+        #     relx=0.5,
+        #     rely=0.63,
+        #     anchor="center",
+        # )
         self.widgets.toggle_rest_mode()
 
         # 위젯 크기 조정
