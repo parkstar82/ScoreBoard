@@ -2092,7 +2092,7 @@ class ControlPanel(tk.Toplevel):
         save_screenshot_bitmap(file_name, self.winfo_id())
 
         # Save the screenshot of the scoreboard view
-        save_screenshot_bitmap(file_name_view, self.scoreboard.winfo_id())
+        # save_screenshot_bitmap(file_name_view, self.scoreboard.winfo_id())
 
 
 class ViewPanel(tk.Toplevel):
