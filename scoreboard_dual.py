@@ -16,37 +16,11 @@ import win32gui
 import win32ui
 import win32con
 
-SOUND_ENABLED = True  # Set to True if pygame is installed and you have a sound file
-TIME_UP_SOUND_FILE = "end_sound.mp3"  # Replace with your sound file path
 
-# Attempt to initialize pygame mixer for sound
-if SOUND_ENABLED:
-    try:
-        import pygame
-
-        pygame.mixer.init()
-        if os.path.exists(TIME_UP_SOUND_FILE):
-            time_up_sound = pygame.mixer.Sound(TIME_UP_SOUND_FILE)
-        else:
-            print(
-                f"Warning: Sound file '{TIME_UP_SOUND_FILE}' not found. Sound disabled.",
-                file=sys.stderr,
-            )
-            SOUND_ENABLED = False
-            time_up_sound = None
-    except ImportError:
-        print(
-            "Warning: Pygame not installed. Sound disabled. Install using: pip install pygame",
-            file=sys.stderr,
-        )
-        SOUND_ENABLED = False
-        time_up_sound = None
-    except Exception as e:
-        print(f"Warning: Could not initialize sound. Error: {e}", file=sys.stderr)
-        SOUND_ENABLED = False
-        time_up_sound = None
-else:
-    time_up_sound = None
+# 1. 글씨체 원복
+# 2. 휴식 종료 시 휴식 모드 종료
+# 3. 사운드 버그 수정
+# 4. 휴식 타이머 위치 조정, 깜박임 적용
 
 
 class ScoreBoard:
@@ -95,7 +69,6 @@ class ScoreBoard:
         self.score_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.score_label_font_size),
-            "bold",
         )
         self.warning_font = (
             self.str_font,
@@ -105,12 +78,10 @@ class ScoreBoard:
         self.name_font = (
             self.str_font,
             self.adjust_widget_size(self.name_font_size),
-            "bold",
         )
         self.weight_font = (
             self.str_font,
             self.adjust_widget_size(self.weight_font_size),
-            "bold",
         )
         self.timer_1_10_button_font = (
             self.str_number_font,
@@ -137,7 +108,6 @@ class ScoreBoard:
         self.timer_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_label_font_size),
-            "bold",
         )
         self.control_btn_frame_width = self.adjust_widget_size(
             self.control_btn_frame_width
@@ -150,6 +120,18 @@ class ScoreBoard:
             self.start_timer_btn_height
         )
         self.util_icon_btn_size = self.adjust_widget_size(self.util_icon_btn_size)
+
+        # Load end sound
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load(self.resource_path("end_sound.mp3"))
+        except ImportError:
+            print(
+                "Warning: Pygame not installed. Sound disabled. Install using: pip install pygame",
+                file=sys.stderr,
+            )
+        except Exception as e:
+            print(f"Warning: Could not initialize sound. Error: {e}", file=sys.stderr)
 
         # Warning circles
         self.load_images()
@@ -641,7 +623,6 @@ class ScoreBoard:
         self.score_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.score_label_font_size),
-            "bold",
         )
         self.warning_font = (
             self.str_font,
@@ -651,12 +632,10 @@ class ScoreBoard:
         self.name_font = (
             self.str_font,
             self.adjust_widget_size(self.name_font_size),
-            "bold",
         )
         self.weight_font = (
             self.str_font,
             self.adjust_widget_size(self.weight_font_size),
-            "bold",
         )
         self.timer_1_10_button_font = (
             self.str_number_font,
@@ -683,7 +662,6 @@ class ScoreBoard:
         self.timer_label_font = (
             self.str_number_font,
             self.adjust_widget_size(self.timer_label_font_size),
-            "bold",
         )
         self.control_btn_frame_width = self.adjust_widget_size(
             self.control_btn_frame_width
@@ -793,7 +771,7 @@ class ScoreBoard:
         # 휴식 timer 위치
         self.timer_canvas_rest.place(
             relx=0.5,
-            rely=(self.timer_canvas_rely - (self.timer_label_height / 1000)),
+            rely=(self.timer_canvas_rely - (self.timer_label_height / 700)),
             anchor="center",
         )
 
@@ -1074,7 +1052,7 @@ class ScoreBoard:
         if self.is_rest:
             self.timer_canvas_rest.place(
                 relx=0.5,
-                rely=(self.timer_canvas_rely - (self.timer_label_height / 1000)),
+                rely=(self.timer_canvas_rely - (self.timer_label_height / 700)),
                 anchor="center",
             )
             self.timer_label_rest.place(
@@ -1117,11 +1095,7 @@ class ScoreBoard:
 
     def play_sound(self):
         # Play an MP3 file when the timer ends
-        if SOUND_ENABLED and time_up_sound:
-            try:
-                time_up_sound.play()
-            except Exception as e:
-                print(f"Error playing sound: {e}", file=sys.stderr)
+        pygame.mixer.music.play()
 
     def reset_timer(self):
         self.timer.reset()
@@ -1351,6 +1325,23 @@ class ScoreBoard:
 
         self.parent.update_idletasks()
         self.parent.after(500, self.blink_winner, count - 1, is_blue_win)
+
+    def blink_timer_rest(self):
+        if self.timer_rest.timer_running:
+            self.timer_canvas_rest.config(
+                bg="orange" if self.timer_canvas_rest.cget("bg") == "white" else "white"
+            )
+            self.timer_label_rest.config(
+                bg="orange" if self.timer_label_rest.cget("bg") == "white" else "white"
+            )
+        else:
+            self.timer_canvas_rest.config(bg="orange")
+            self.timer_label_rest.config(bg="orange")
+
+        # self.parent.update_idletasks()
+        self.timer_canvas_rest.update_idletasks()
+        self.timer_label_rest.update_idletasks()
+        self.parent.after(500, self.blink_timer_rest)
 
 
 class ControlPanel(tk.Toplevel):
@@ -1940,6 +1931,8 @@ class ControlPanel(tk.Toplevel):
                 )
 
                 self.countdown_rest()
+                self.widgets.blink_timer_rest()
+                self.scoreboard.widgets.blink_timer_rest()
             else:
                 self.timer_rest.start(False)
                 self.widgets.show_btn_start_timer_rest(
@@ -2002,6 +1995,9 @@ class ControlPanel(tk.Toplevel):
                 # Play an MP3 file when the timer ends
                 self.widgets.play_sound()
                 self.scoreboard.widgets.play_sound()
+
+                # 휴식모드 종료
+                self.update_toggle_rest_mode()
 
     def save_screenshot(self):
         """
@@ -2137,8 +2133,7 @@ class ViewPanel(tk.Toplevel):
         self.widgets.timer_canvas_rest.place(
             relx=0.5,
             rely=(
-                self.widgets.timer_canvas_rely
-                - (self.widgets.timer_label_height / 1000)
+                self.widgets.timer_canvas_rely - (self.widgets.timer_label_height / 700)
             ),
             anchor="center",
         )
