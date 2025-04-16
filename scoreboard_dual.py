@@ -352,7 +352,7 @@ class ScoreBoard:
             self.blue_warning,
             "경고",
             self.warning_font,
-            "#facc15",
+            "#ffff00",
             "black",
         )
         _, self.btn_blue_plus = create_framed_button(
@@ -360,7 +360,7 @@ class ScoreBoard:
             self.blue_increase,
             "+1",
             self.plus_minus_button_font,
-            "#2563eb",
+            "blue",
             "white",
         )
         _, self.btn_blue_minus = create_framed_button(
@@ -368,7 +368,7 @@ class ScoreBoard:
             self.blue_decrease,
             "-1",
             self.plus_minus_button_font,
-            "#1e40af",
+            "#8080ff",
             "white",
         )
 
@@ -583,7 +583,7 @@ class ScoreBoard:
             self.red_increase,
             "+1",
             self.plus_minus_button_font,
-            "#dc2626",
+            "red",
             "white",
         )
         _, self.btn_red_minus = create_framed_button(
@@ -591,7 +591,7 @@ class ScoreBoard:
             self.red_decrease,
             "-1",
             self.plus_minus_button_font,
-            "#b91c1c",
+            "#F08080",
             "white",
         )
         _, self.red_warning_button = create_framed_button(
@@ -599,7 +599,7 @@ class ScoreBoard:
             self.red_warning,
             "경고",
             self.warning_font,
-            "#facc15",
+            "#ffff00",
             "black",
         )
 
@@ -758,7 +758,7 @@ class ScoreBoard:
             self.parent,
             width=self.timer_label_width,
             height=self.timer_label_height,
-            bg="moccasin",
+            bg="yellow",
             bd=0,
             relief="solid",
             highlightthickness=2,
@@ -776,7 +776,7 @@ class ScoreBoard:
             self.timer_canvas_rest,
             textvariable=self.time_rest_remaining,
             font=self.timer_label_font,
-            bg="moccasin",
+            bg="yellow",
         )
         self.timer_label_rest.place(
             x=(self.timer_label_width // 2),
@@ -1325,23 +1325,21 @@ class ScoreBoard:
 
     def blink_timer_rest(self):
         if self.timer_rest.timer_running:
-            self.timer_canvas_rest.config(
-                bg=(
-                    "moccasin"
-                    if self.timer_canvas_rest.cget("bg") == "white"
-                    else "white"
-                )
-            )
+            # self.timer_canvas_rest.config(
+            #     bg=(
+            #         "yellow"
+            #         if self.timer_canvas_rest.cget("bg") == "white"
+            #         else "white"
+            #     )
+            # )
             self.timer_label_rest.config(
                 bg=(
-                    "moccasin"
-                    if self.timer_label_rest.cget("bg") == "white"
-                    else "white"
+                    "yellow" if self.timer_label_rest.cget("bg") == "white" else "white"
                 )
             )
         else:
-            self.timer_canvas_rest.config(bg="moccasin")
-            self.timer_label_rest.config(bg="moccasin")
+            # self.timer_canvas_rest.config(bg="yellow")
+            self.timer_label_rest.config(bg="yellow")
 
         # self.parent.update_idletasks()
         self.parent.update_idletasks()
@@ -1459,7 +1457,7 @@ class ControlPanel(tk.Toplevel):
             "Red.Treeview",
             background="#F5E6D3",
             foreground="black",
-            fieldbackground="lightgray",
+            fieldbackground="red",
             font=log_font,
             rowheight=log_rowheight,
         )
@@ -1467,7 +1465,7 @@ class ControlPanel(tk.Toplevel):
             "Blue.Treeview",
             background="#F5E6D3",
             foreground="black",
-            fieldbackground="lightgray",
+            fieldbackground="blue",
             font=log_font,
             rowheight=log_rowheight,
         )
