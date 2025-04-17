@@ -707,11 +707,7 @@ class ScoreBoard:
             width=self.timer_label_width, height=self.timer_label_height
         )
         self.timer_label_rest.config(font=self.timer_label_font)
-        self.timer_label_rest.place(
-            x=(self.timer_label_width // 2),
-            y=(self.timer_label_height // 2),
-            anchor="center",
-        )
+        self.timer_label_rest.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
 
     def init_timer_label(self):
         """
@@ -778,11 +774,7 @@ class ScoreBoard:
             font=self.timer_label_font,
             bg="yellow",
         )
-        self.timer_label_rest.place(
-            x=(self.timer_label_width // 2),
-            y=(self.timer_label_height // 2),
-            anchor="center",
-        )
+        self.timer_label_rest.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
 
     def init_weight_entry(self):
         """
@@ -1052,11 +1044,7 @@ class ScoreBoard:
                 rely=self.timer_canvas_rest_rely,
                 anchor="center",
             )
-            self.timer_label_rest.place(
-                x=(self.timer_label_width // 2),
-                y=(self.timer_label_height // 2),
-                anchor="center",
-            )
+            self.timer_label_rest.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
             self.btn_start_timer.pack_forget()
             self.btn_start_timer_rest.pack(fill=tk.BOTH, expand=True)
 
@@ -1347,7 +1335,7 @@ class ScoreBoard:
         # self.parent.update_idletasks()
         self.parent.update_idletasks()
         # self.timer_label_rest.update_idletasks()
-        self.parent.after(1000, self.blink_timer_rest)
+        self.has_blink_timer = self.parent.after(1000, self.blink_timer_rest)
 
 
 class ControlPanel(tk.Toplevel):
@@ -1693,6 +1681,12 @@ class ControlPanel(tk.Toplevel):
         """
         Handle the close event for the control panel.
         """
+        try:
+            self.unbind("<Configure>")
+            self.scoreboard.unbind("<Configure>")
+        except tk.TclError as e:
+            print(f"Error unbinding <Configure>: {e}")  # 이미 파괴되었을 수 있음
+
         # Close both the control panel and the view panel
         self.destroy()
         self.scoreboard.destroy()
@@ -1937,6 +1931,7 @@ class ControlPanel(tk.Toplevel):
                 )
 
                 self.countdown_rest()
+
                 self.widgets.blink_timer_rest()
                 self.scoreboard.widgets.blink_timer_rest()
             else:
@@ -1944,6 +1939,16 @@ class ControlPanel(tk.Toplevel):
                 self.widgets.show_btn_start_timer_rest(
                     False
                 )  # Show '휴식' and Show widgets
+                # 깜박임 취소
+                if hasattr(self.widgets, "has_blink_timer"):
+                    self.widgets.parent.after_cancel(self.widgets.has_blink_timer)
+                    self.widgets.has_blink_timer = None
+
+                if hasattr(self.scoreboard.widgets, "has_blink_timer"):
+                    self.scoreboard.widgets.parent.after_cancel(
+                        self.scoreboard.widgets.has_blink_timer
+                    )
+                    self.scoreboard.widgets.has_blink_timer = None
 
     def countdown(self):
         if self.timer.timer_running:
