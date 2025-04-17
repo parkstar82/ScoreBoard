@@ -1333,7 +1333,7 @@ class ScoreBoard:
             self.timer_label_rest.config(bg="yellow")
 
         # self.parent.update_idletasks()
-        self.parent.update_idletasks()
+        self.timer_label_rest.update_idletasks()
         # self.timer_label_rest.update_idletasks()
         self.has_blink_timer = self.parent.after(1000, self.blink_timer_rest)
 
