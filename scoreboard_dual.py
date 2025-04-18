@@ -1337,6 +1337,11 @@ class ScoreBoard:
         # self.timer_label_rest.update_idletasks()
         self.has_blink_timer = self.parent.after(1000, self.blink_timer_rest)
 
+    def cancel_blink_timer_rest(self):
+        if hasattr(self, "has_blink_timer"):
+            self.parent.after_cancel(self.has_blink_timer)
+            self.has_blink_timer = None
+
 
 class ControlPanel(tk.Toplevel):
     """
@@ -1700,16 +1705,19 @@ class ControlPanel(tk.Toplevel):
         """
         self.scoreboard.widgets.red_increase()
         self.widgets.red_increase()
+        self.balance_log_views()
         self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="+1")
 
     def update_red_decrease(self):
         self.scoreboard.widgets.red_decrease()
         self.widgets.red_decrease()
+        self.balance_log_views
         self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="-1")
 
     def update_red_warning(self):
         self.widgets.red_warning()
         self.scoreboard.widgets.red_warning()
+        self.balance_log_views()
         self.add_log_item(
             self.red_log_view,
             self.timer.get_time_remaining(),
@@ -1722,6 +1730,7 @@ class ControlPanel(tk.Toplevel):
         """
         self.scoreboard.widgets.blue_increase()
         self.widgets.blue_increase()
+        self.balance_log_views()
         self.add_log_item(
             self.blue_log_view, self.timer.get_time_remaining(), text="+1"
         )
@@ -1729,6 +1738,7 @@ class ControlPanel(tk.Toplevel):
     def update_blue_decrease(self):
         self.scoreboard.widgets.blue_decrease()
         self.widgets.blue_decrease()
+        self.balance_log_views()
         self.add_log_item(
             self.blue_log_view, self.timer.get_time_remaining(), text="-1"
         )
@@ -1736,6 +1746,7 @@ class ControlPanel(tk.Toplevel):
     def update_blue_warning(self):
         self.scoreboard.widgets.blue_warning()
         self.widgets.blue_warning()
+        self.balance_log_views()
         self.add_log_item(
             self.blue_log_view,
             self.timer.get_time_remaining(),
@@ -1828,6 +1839,11 @@ class ControlPanel(tk.Toplevel):
             self.widgets.btn_timer_minus_10.config(
                 command=lambda: self.update_decrease_timer_rest(1000)
             )
+            # 휴식 타이머 초기화
+            self.timer_rest.init_time = 6000
+            self.timer_rest.reset()
+            self.widgets.update_timer_rest()
+            self.scoreboard.widgets.update_timer_rest()
         else:
             self.widgets.btn_timer_plus_1.config(
                 command=lambda: self.update_increase_timer(100)
@@ -1939,16 +1955,10 @@ class ControlPanel(tk.Toplevel):
                 self.widgets.show_btn_start_timer_rest(
                     False
                 )  # Show '휴식' and Show widgets
-                # 깜박임 취소
-                if hasattr(self.widgets, "has_blink_timer"):
-                    self.widgets.parent.after_cancel(self.widgets.has_blink_timer)
-                    self.widgets.has_blink_timer = None
 
-                if hasattr(self.scoreboard.widgets, "has_blink_timer"):
-                    self.scoreboard.widgets.parent.after_cancel(
-                        self.scoreboard.widgets.has_blink_timer
-                    )
-                    self.scoreboard.widgets.has_blink_timer = None
+                # 깜박임 종료
+                self.widgets.cancel_blink_timer_rest()
+                self.scoreboard.widgets.cancel_blink_timer_rest()
 
     def countdown(self):
         if self.timer.timer_running:
@@ -1996,12 +2006,13 @@ class ControlPanel(tk.Toplevel):
                 self.scoreboard.widgets.update_timer_rest()
                 self.after(10, self.countdown_rest)
             elif self.timer_rest.timer_seconds <= 0:  # 시간 종료. 휴식 끝
-                # Reset Rest Timer Button
-                self.timer_rest.reset()
-                self.widgets.show_btn_start_timer_rest(False)
-
+                # 시간 00:00으로 표시
+                self.timer_rest.timer_seconds = 0
                 self.widgets.update_timer_rest()
                 self.scoreboard.widgets.update_timer_rest()
+
+                # Reset Rest Timer Button
+                self.widgets.show_btn_start_timer_rest(False)
 
                 # Play an MP3 file when the timer ends
                 self.widgets.play_sound()
@@ -2009,6 +2020,10 @@ class ControlPanel(tk.Toplevel):
 
                 # 휴식모드 종료
                 self.update_toggle_rest_mode()
+
+                # 깜박임 종료
+                self.widgets.cancel_blink_timer_rest()
+                self.scoreboard.widgets.cancel_blink_timer_rest()
 
     def save_screenshot(self):
         """
@@ -2218,10 +2233,8 @@ if __name__ == "__main__":
     if len(monitor) == 1:
         monitor.append(monitor[0])
 
-    timer = Timer()
-    timer_rest = Timer()
-    timer_rest.init_time = 6000  # 60초
-    timer_rest.reset()
+    timer = Timer(9000)
+    timer_rest = Timer(6000)
 
     score_board = ViewPanel(root, monitor[1], timer, timer_rest)
     control_panel = ControlPanel(root, score_board, monitor[0], timer, timer_rest)

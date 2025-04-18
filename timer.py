@@ -2,9 +2,9 @@ import time
 
 
 class Timer:
-    def __init__(self):
-        self.timer_seconds = 9000  # 현재 남은 시간
-        self.init_time = self.timer_seconds  # 사용자 설정 시작 시간
+    def __init__(self, _init_time=9000):
+        self.init_time = _init_time  # 초기화 시간, 사용자 설정 시가
+        self.timer_seconds = self.init_time  # 현재 남은 시간
         self.start_timer_seconds = self.timer_seconds  # 현재 남은 시작 시간
         self.is_start = False  # 시합 시작
         self.timer_running = False
@@ -37,6 +37,11 @@ class Timer:
             self.start_time = time.time()  # Save the current time
         else:
             self.start_timer_seconds = self.timer_seconds
+
+    def set_init_time(self, time):
+        self.init_time = time
+        self.timer_seconds = time
+        self.start_timer_seconds = time
 
     def reset(self):
         self.timer_seconds = self.init_time
