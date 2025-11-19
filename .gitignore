@@ -5,3 +5,7 @@ memo.txt
 /__pycache__
 *.bat
 /test
+/captures
+/scoreboard
+/screenshots
+/images/older
