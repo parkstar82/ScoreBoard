@@ -18,6 +18,10 @@ import win32con
 
 
 class ScoreBoard:
+    """
+    Main scoreboard class for managing UI components and game logic.
+    """
+
     def __init__(self, parent, screen_width, screen_height, timer, timer_rest):
         self.parent = parent
         self.parent.configure(bg="gray100")
@@ -287,7 +291,7 @@ class ScoreBoard:
         self.init_weight_entry()
 
         self.control_frame = tk.Frame(
-            self.parent, bg="lightgray", pady=5, padx=10
+            self.parent, bg="#2E2E2E", pady=5, padx=10
         )  # Dark background
         self.control_frame.place(
             relx=0.5, rely=0.915, anchor="center", relwidth=1.0, relheight=0.19
@@ -307,21 +311,21 @@ class ScoreBoard:
         self.control_frame.grid_rowconfigure(0, weight=1)
 
         # Blue controls
-        self.blue_control_frame = tk.Frame(self.control_frame, bg="lightgray")
+        self.blue_control_frame = tk.Frame(self.control_frame, bg="#2E2E2E")
         self.blue_control_frame.grid(
             row=0, column=0, sticky="ns"
         )  # Use grid, sticky stretches horizontally
         # Inner frame to hold the blue buttons, centered within blue_control_frame
-        self.blue_buttons_inner_frame = tk.Frame(
-            self.blue_control_frame, bg="lightgray"
-        )
+        self.blue_buttons_inner_frame = tk.Frame(self.blue_control_frame, bg="#2E2E2E")
         # Pack the inner frame so it stays centered
         self.blue_buttons_inner_frame.pack(
             anchor="e", expand=True
         )  # expand=True helps centering
 
         # Helper function to create buttons within fixed-size frames
-        def create_framed_button(parent, command, text, btn_font, bg_color, fg_color):
+        def create_framed_button(
+            parent, command, text, btn_font, bg_color, fg_color, shortcut=None
+        ):
             frame = tk.Frame(
                 parent,
                 width=self.control_btn_frame_width,
@@ -344,6 +348,71 @@ class ScoreBoard:
             )
             # Pack button to fill the frame
             button.pack(fill=tk.BOTH, expand=True)
+            # Ensure button has explicit active colors so we can mirror them on the badge
+            try:
+                # Default to white background / black text on press for good contrast
+                button.config(activebackground="white", activeforeground="black")
+            except Exception:
+                pass
+
+            # If a shortcut label is provided, add a small badge in the frame corner
+            if shortcut:
+                # Determine a smaller font size based on the button font
+                try:
+                    if isinstance(btn_font, (tuple, list)) and len(btn_font) >= 2:
+                        base_size = int(btn_font[1])
+                    else:
+                        base_size = 12
+                except Exception:
+                    base_size = 12
+
+                # Set badge font to approximately 1/4 of the button font size
+                try:
+                    small_size = max(6, max(1, int(base_size / 4)))
+                except Exception:
+                    small_size = 6
+                try:
+                    small_font = (btn_font[0], small_size)
+                except Exception:
+                    small_font = ("Arial", small_size)
+
+                # Choose badge foreground color for readability (yellow warning uses black)
+                badge_fg = (
+                    "black"
+                    if str(bg_color).lower() in ("#ffff00", "yellow")
+                    else "white"
+                )
+                badge_bg = bg_color
+
+                badge = tk.Label(
+                    frame,
+                    text=shortcut,
+                    font=small_font,
+                    bg=badge_bg,
+                    fg=badge_fg,
+                    bd=0,
+                )
+                # Place badge at bottom-center of the frame (slightly above the edge)
+                badge.place(relx=0.5, rely=1.0, anchor="s", y=-4)
+
+                # Bind button press/release to update badge colors to match button active colors
+                def _on_press(event, b=button, badge=badge):
+                    try:
+                        active_bg = b.cget("activebackground")
+                        active_fg = b.cget("activeforeground")
+                        badge.config(bg=active_bg, fg=active_fg)
+                    except Exception:
+                        pass
+
+                def _on_release(event, orig_bg=badge_bg, orig_fg=badge_fg, badge=badge):
+                    try:
+                        badge.config(bg=orig_bg, fg=orig_fg)
+                    except Exception:
+                        pass
+
+                button.bind("<ButtonPress-1>", _on_press)
+                button.bind("<ButtonRelease-1>", _on_release)
+                button.bind("<Leave>", _on_release)
             return frame, button  # Return both if needed
 
         # Create Blue buttons using the helper
@@ -352,7 +421,7 @@ class ScoreBoard:
             self.blue_warning,
             "경고",
             self.warning_font,
-            "#ffff00",
+            "#ffff4b",
             "black",
         )
         _, self.btn_blue_plus = create_framed_button(
@@ -360,8 +429,18 @@ class ScoreBoard:
             self.blue_increase,
             "+1",
             self.plus_minus_button_font,
-            "blue",
+            "#0047AB",
             "white",
+            # shortcut="1",
+        )
+        _, self.btn_blue_plus2 = create_framed_button(
+            self.blue_buttons_inner_frame,
+            self.blue_increase2,
+            "+2",
+            self.plus_minus_button_font,
+            "#0047AB",
+            "white",
+            # shortcut="2",
         )
         _, self.btn_blue_minus = create_framed_button(
             self.blue_buttons_inner_frame,
@@ -370,13 +449,14 @@ class ScoreBoard:
             self.plus_minus_button_font,
             "#8080ff",
             "white",
+            # shortcut="3",
         )
 
         # Timer controls
-        self.timer_control_frame = tk.Frame(self.control_frame, bg="lightgray")
+        self.timer_control_frame = tk.Frame(self.control_frame, bg="#2E2E2E")
         # Place timer controls in the center column (1) of the grid
         self.timer_control_frame.grid(row=0, column=2, padx=10)
-        self.timer_adj_minus_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
+        self.timer_adj_minus_frame = tk.Frame(self.timer_control_frame, bg="#2E2E2E")
         self.btn_timer_minus_1 = tk.Button(
             self.timer_adj_minus_frame,
             text="-1",
@@ -405,7 +485,7 @@ class ScoreBoard:
         # | rest|capture|reset|
         # |-------------------|
         # Capture button
-        self.timer_util_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
+        self.timer_util_frame = tk.Frame(self.timer_control_frame, bg="#2E2E2E")
         # Configure grid inside utility frame
         self.timer_util_frame.grid_columnconfigure(
             (0, 1, 2), weight=1, uniform="util_buttons"
@@ -485,7 +565,7 @@ class ScoreBoard:
             start_frame,
             text="시작",
             font=self.timer_button_font,
-            bg="#16a34a",
+            bg="#388E3C",
             fg="white",
             bd=1,
             relief=tk.RAISED,
@@ -496,7 +576,7 @@ class ScoreBoard:
             start_frame,
             text="휴식",
             font=self.timer_button_font,
-            bg="#16a34a",
+            bg="#388E3C",
             fg="white",
             bd=1,
             relief=tk.RAISED,
@@ -536,7 +616,7 @@ class ScoreBoard:
         )
 
         # Timer adjust plus frame
-        self.timer_adj_plus_frame = tk.Frame(self.timer_control_frame, bg="lightgray")
+        self.timer_adj_plus_frame = tk.Frame(self.timer_control_frame, bg="#2E2E2E")
         self.btn_timer_plus_1 = tk.Button(
             self.timer_adj_plus_frame,
             text="+1",
@@ -567,13 +647,13 @@ class ScoreBoard:
         self.timer_adj_plus_frame.pack(side=tk.LEFT, padx=5, fill="y", anchor="e")
 
         # Red controls
-        self.red_control_frame = tk.Frame(self.control_frame, bg="lightgray")
+        self.red_control_frame = tk.Frame(self.control_frame, bg="#2E2E2E")
         self.red_control_frame.grid(
             row=0, column=4, sticky="ns"
         )  # Sticky fills the cell
 
         # Inner frame to hold the red buttons, centered within red_control_frame
-        self.red_buttons_inner_frame = tk.Frame(self.red_control_frame, bg="lightgray")
+        self.red_buttons_inner_frame = tk.Frame(self.red_control_frame, bg="#2E2E2E")
         # Pack the inner frame so it stays centered
         self.red_buttons_inner_frame.pack(anchor="w", expand=True)
 
@@ -583,8 +663,18 @@ class ScoreBoard:
             self.red_increase,
             "+1",
             self.plus_minus_button_font,
-            "red",
+            "#D32F2F",
             "white",
+            # shortcut="0",
+        )
+        _, self.btn_red_plus2 = create_framed_button(
+            self.red_buttons_inner_frame,
+            self.red_increase2,
+            "+2",
+            self.plus_minus_button_font,
+            "#D32F2F",
+            "white",
+            # shortcut="-",
         )
         _, self.btn_red_minus = create_framed_button(
             self.red_buttons_inner_frame,
@@ -593,13 +683,14 @@ class ScoreBoard:
             self.plus_minus_button_font,
             "#F08080",
             "white",
+            # shortcut="=",
         )
         _, self.red_warning_button = create_framed_button(
             self.red_buttons_inner_frame,
             self.red_warning,
             "경고",
             self.warning_font,
-            "#ffff00",
+            "#ffff4b",
             "black",
         )
 
@@ -607,6 +698,13 @@ class ScoreBoard:
         """
         Handle window resize events and adjust widget sizes accordingly.
         """
+
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
+        if not self.title_entry.winfo_exists():
+            return  # Exit if the widghet window is already destroyed
+
         # Update the screen width and height
         self.screen_width = self.parent.winfo_width()
         self.screen_height = self.parent.winfo_height()
@@ -979,18 +1077,44 @@ class ScoreBoard:
             print(f"Error loading log yellow circle image: {e}", file=sys.stderr)
 
     def red_increase(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.red_score += 1
         self.red_score_label.config(text="{}".format(self.red_score))
 
+    def red_increase2(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
+        self.red_score += 2
+        self.red_score_label.config(text="{}".format(self.red_score))
+
     def blue_increase(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.blue_score += 1
         self.blue_score_label.config(text="{}".format(self.blue_score))
 
+    def blue_increase2(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
+        self.blue_score += 2
+        self.blue_score_label.config(text="{}".format(self.blue_score))
+
     def red_decrease(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.red_score -= 1
         self.red_score_label.config(text="{}".format(self.red_score))
 
     def blue_decrease(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.blue_score -= 1
         self.blue_score_label.config(text="{}".format(self.blue_score))
 
@@ -1038,6 +1162,9 @@ class ScoreBoard:
         """
         Switches between main timer display and rest timer display/controls.
         """
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         if self.is_rest:
             self.timer_canvas_rest.place(
                 relx=0.5,
@@ -1086,6 +1213,10 @@ class ScoreBoard:
         pygame.mixer.music.play()
 
     def reset_timer(self):
+
+        if not self.parent.winfo_exists():
+            return
+
         self.timer.reset()
         self.timer_rest.reset()
         self.update_timer()
@@ -1131,7 +1262,9 @@ class ScoreBoard:
         self.blue_red_circle2_place_info = self.blue_red_circle2.place_info()
 
     def red_warning(self):
-        # if self.timer.is_start:
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.red_warning_state += 1
 
         if self.red_warning_state == 1:
@@ -1186,7 +1319,9 @@ class ScoreBoard:
             self.red_red_circle2.place_forget()
 
     def blue_warning(self):
-        # if self.timer.is_start:
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         self.blue_warning_state += 1
 
         if self.blue_warning_state == 1:
@@ -1281,6 +1416,9 @@ class ScoreBoard:
         return adjusted_size
 
     def toggle_fullscreen(self, isActivate=True):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         if isActivate:
             # deactivate full screen
             self.parent.state("normal")
@@ -1315,6 +1453,9 @@ class ScoreBoard:
         self.parent.after(500, self.blink_winner, count - 1, is_blue_win)
 
     def blink_timer_rest(self):
+        if not self.parent.winfo_exists():
+            return  # Exit if the parent window is already destroyed
+
         if self.timer_rest.timer_running:
             # self.timer_canvas_rest.config(
             #     bg=(
@@ -1377,9 +1518,15 @@ class ControlPanel(tk.Toplevel):
         self.title("컨트롤 패널")
 
         self.widgets.btn_red_plus.config(command=self.update_red_score)
+        # +2 button binding (added during refactor)
+        if hasattr(self.widgets, "btn_red_plus2"):
+            self.widgets.btn_red_plus2.config(command=self.update_red_score2)
         self.widgets.btn_red_minus.config(command=self.update_red_decrease)
         self.widgets.red_warning_button.config(command=self.update_red_warning)
         self.widgets.btn_blue_plus.config(command=self.update_blue_score)
+        # +2 button binding (added during refactor)
+        if hasattr(self.widgets, "btn_blue_plus2"):
+            self.widgets.btn_blue_plus2.config(command=self.update_blue_score2)
         self.widgets.btn_blue_minus.config(command=self.update_blue_decrease)
         self.widgets.blue_warning_button.config(command=self.update_blue_warning)
         self.widgets.btn_timer_plus_1.config(
@@ -1519,10 +1666,27 @@ class ControlPanel(tk.Toplevel):
         item_count = len(treeview.get_children())
         tag = "odd_row" if item_count % 2 == 0 else "even_row"
 
+        item_id = None
         if image:
-            treeview.insert("", tk.END, values=(time,), image=image, tags=(tag,))
+            item_id = treeview.insert(
+                "", tk.END, values=(time,), image=image, tags=(tag,)
+            )
         elif text is not None:
-            treeview.insert("", tk.END, values=(time,), text=text, tags=(tag,))
+            item_id = treeview.insert(
+                "", tk.END, values=(time,), text=text, tags=(tag,)
+            )
+
+        # Ensure the newly added item is visible (scroll to bottom)
+        try:
+            if item_id:
+                treeview.see(item_id)
+            else:
+                # Fallback: scroll to last child if any
+                children = treeview.get_children()
+                if children:
+                    treeview.see(children[-1])
+        except Exception:
+            pass
 
     def _add_empty_item(self, treeview):
         item_count = len(treeview.get_children())
@@ -1601,10 +1765,12 @@ class ControlPanel(tk.Toplevel):
 
         # 탭 2: 단축키목록
         self.shortcut_data = [
-            ("1", "파란색 점수 증가"),
-            ("2", "파란색 점수 감소"),
-            ("-", "빨간색 점수 증가"),
-            ("=", "빨간색 점수 감소"),
+            ("1", "파란색 +1"),
+            ("2", "파란색 +2"),
+            ("3", "파란색 -1"),
+            ("0", "빨간색 +1"),
+            ("-", "빨간색 +2"),
+            ("=", "빨간색 -1"),
             ("4", "파란색 승리 표시 (깜박임)"),
             ("9", "빨간색 승리 표시 (깜박임)"),
             ("스페이스바", "타이머 시작"),
@@ -1662,17 +1828,53 @@ class ControlPanel(tk.Toplevel):
             f"{self.screen_width}x{self.screen_height}+{self.monitor.x}+{self.monitor.y}"
         )
 
-    def copy_title_entry(self, evnet):
+    def copy_title_entry(self, event):
+        # Check if scoreboard (ViewPanel) and its widgets still exist
+        if (
+            not hasattr(self.scoreboard, "widgets")
+            or not self.scoreboard.winfo_exists()
+        ):
+            return
+        if (
+            not hasattr(self.scoreboard.widgets, "title_entry")
+            or not self.scoreboard.widgets.title_entry.winfo_exists()
+        ):
+            return
+
         self.scoreboard.widgets.title_entry.delete(0, tk.END)
         self.scoreboard.widgets.title_entry.insert(0, self.widgets.title_entry.get())
 
     def copy_red_name_entry(self, event):
+        # Check if scoreboard (ViewPanel) and its widgets still exist
+        if (
+            not hasattr(self.scoreboard, "widgets")
+            or not self.scoreboard.winfo_exists()
+        ):
+            return
+        if (
+            not hasattr(self.scoreboard.widgets, "red_name_entry")
+            or not self.scoreboard.widgets.red_name_entry.winfo_exists()
+        ):
+            return
+
         self.scoreboard.widgets.red_name_entry.delete(0, tk.END)
         self.scoreboard.widgets.red_name_entry.insert(
             0, self.widgets.red_name_entry.get()
         )
 
     def copy_blue_name_entry(self, event):
+        # Check if scoreboard (ViewPanel) and its widgets still exist
+        if (
+            not hasattr(self.scoreboard, "widgets")
+            or not self.scoreboard.winfo_exists()
+        ):
+            return
+        if (
+            not hasattr(self.scoreboard.widgets, "blue_name_entry")
+            or not self.scoreboard.widgets.blue_name_entry.winfo_exists()
+        ):
+            return
+
         self.scoreboard.widgets.blue_name_entry.delete(0, tk.END)
         self.scoreboard.widgets.blue_name_entry.insert(
             0, self.widgets.blue_name_entry.get()
@@ -1687,17 +1889,24 @@ class ControlPanel(tk.Toplevel):
         Handle the close event for the control panel.
         """
         try:
-            self.unbind("<Configure>")
-            self.scoreboard.unbind("<Configure>")
+            if self.winfo_exists():
+                self.unbind("<Configure>")
+            if hasattr(self, "scoreboard") and self.scoreboard.winfo_exists():
+                self.scoreboard.unbind("<Configure>")
         except tk.TclError as e:
             print(f"Error unbinding <Configure>: {e}")  # 이미 파괴되었을 수 있음
 
-        # Close both the control panel and the view panel
-        self.destroy()
-        self.scoreboard.destroy()
+        # Destroy ViewPanel first if it exists
+        if hasattr(self, "scoreboard") and self.scoreboard.winfo_exists():
+            self.scoreboard.destroy()
 
-        # Terminate the mainloop
-        self.master.quit()
+        # Destroy ControlPanel itself
+        if self.winfo_exists():
+            self.destroy()
+
+        # Terminate the mainloop if the root window still exists
+        if self.master.winfo_exists():
+            self.master.quit()
 
     def update_red_score(self):
         """
@@ -1707,6 +1916,20 @@ class ControlPanel(tk.Toplevel):
         self.widgets.red_increase()
         self.balance_log_views()
         self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="+1")
+
+    def update_red_score2(self):
+        """
+        Update the red team's score by +2 and log the event.
+        """
+        # Update both scoreboard and control widgets
+        if hasattr(self.scoreboard, "widgets") and hasattr(
+            self.scoreboard.widgets, "red_increase2"
+        ):
+            self.scoreboard.widgets.red_increase2()
+        if hasattr(self.widgets, "red_increase2"):
+            self.widgets.red_increase2()
+        self.balance_log_views()
+        self.add_log_item(self.red_log_view, self.timer.get_time_remaining(), text="+2")
 
     def update_red_decrease(self):
         self.scoreboard.widgets.red_decrease()
@@ -1733,6 +1956,21 @@ class ControlPanel(tk.Toplevel):
         self.balance_log_views()
         self.add_log_item(
             self.blue_log_view, self.timer.get_time_remaining(), text="+1"
+        )
+
+    def update_blue_score2(self):
+        """
+        Update the blue team's score by +2 and log the event.
+        """
+        if hasattr(self.scoreboard, "widgets") and hasattr(
+            self.scoreboard.widgets, "blue_increase2"
+        ):
+            self.scoreboard.widgets.blue_increase2()
+        if hasattr(self.widgets, "blue_increase2"):
+            self.widgets.blue_increase2()
+        self.balance_log_views()
+        self.add_log_item(
+            self.blue_log_view, self.timer.get_time_remaining(), text="+2"
         )
 
     def update_blue_decrease(self):
@@ -1781,13 +2019,28 @@ class ControlPanel(tk.Toplevel):
             and self.focus_get() != self.widgets.weight_entry
         ):
             key_code = event.keycode
-            if key_code == 49:  # 1
+            # Key mapping:
+            # '1' -> Blue +1
+            # '2' -> Blue +2
+            # '3' -> Blue -1
+            # '0' -> Red +1
+            # '-' -> Red +2
+            # '=' -> Red -1
+            if key_code == 49:  # '1'
                 self.update_blue_score()
-            elif key_code == 50:  # 2
+            elif key_code == 50:  # '2'
+                # Blue +2
+                if hasattr(self, "update_blue_score2"):
+                    self.update_blue_score2()
+            elif key_code == 51:  # '3'
                 self.update_blue_decrease()
-            elif key_code == 189:  # -
+            elif key_code == 48:  # '0'
                 self.update_red_score()
-            elif key_code == 187:  # =
+            elif key_code == 189:  # '-'
+                # Red +2
+                if hasattr(self, "update_red_score2"):
+                    self.update_red_score2()
+            elif key_code == 187:  # '='
                 self.update_red_decrease()
             elif key_code == 52:  # 4
                 self.widgets.blink_winner(6, True)  # Blue Win
@@ -1798,9 +2051,11 @@ class ControlPanel(tk.Toplevel):
             elif key_code == 32:  # Spacebar
                 self.start_timer()
             elif key_code == 13:  # Enter
-                self.scoreboard.widgets.toggle_fullscreen(
-                    self.scoreboard.overrideredirect()
-                )
+                if self.scoreboard.widgets.parent.winfo_exists():
+                    self.scoreboard.widgets.toggle_fullscreen(
+                        self.scoreboard.overrideredirect()
+                    )
+
                 self.widgets.toggle_fullscreen(self.overrideredirect())
 
                 if self.overrideredirect():
